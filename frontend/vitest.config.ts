@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vitest/config.js";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
