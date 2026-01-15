@@ -2,10 +2,253 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PlugLegacy - Electric Obsidian Design System */
+
 @layer base {
+  :root {
+    /* Core Obsidian Background */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Glass Cards */
+    --card: 0 0% 100% / 0.05;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Electric Orange Primary */
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Muted Glass */
+    --secondary: 0 0% 100% / 0.08;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 100% / 0.06;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 24 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Glass Borders */
+    --border: 0 0% 100% / 0.1;
+    --input: 0 0% 100% / 0.1;
+    --ring: 24 100% 50%;
+
+    --radius: 1rem;
+
+    /* Custom PlugLegacy Colors */
+    --obsidian: 240 10% 3.9%;
+    --obsidian-light: 240 6% 10%;
+    --electric-orange: 24 100% 50%;
+    --electric-amber: 32 100% 55%;
+    --glow-orange: 24 100% 50% / 0.4;
+    --glass-white: 0 0% 100% / 0.05;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-hover: 0 0% 100% / 0.1;
+
+    /* Gradients */
+    --gradient-orange: linear-gradient(135deg, hsl(24 100% 50%), hsl(32 100% 55%));
+    --gradient-text: linear-gradient(135deg, hsl(0 0% 100%), hsl(24 100% 60%));
+    --gradient-glow: radial-gradient(ellipse at center, hsl(24 100% 50% / 0.3), transparent 70%);
+    --gradient-hero-glow: radial-gradient(ellipse 60% 50% at 50% 40%, hsl(24 100% 45% / 0.25), transparent 60%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 60px hsl(24 100% 50% / 0.3);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.3);
+    --shadow-button: 0 4px 20px hsl(24 100% 50% / 0.4);
+
+    --sidebar-background: 240 10% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 24 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100% / 0.08;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 100% / 0.1;
+    --sidebar-ring: 24 100% 50%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 100% / 0.05;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 100% / 0.08;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 100% / 0.06;
+    --muted-foreground: 0 0% 70%;
+    --accent: 24 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 0.1;
+    --input: 0 0% 100% / 0.1;
+    --ring: 24 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
   body {
-    font-family: 'Inter', sans-serif;
-    background-color: #0a0e27;
-    color: #ffffff;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Glass Card */
+  .glass-card {
+    @apply bg-glass backdrop-blur-xl border border-glass-border rounded-2xl;
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300;
+  }
+
+  .glass-card-hover:hover {
+    @apply bg-glass-hover border-primary/30;
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-orange-text {
+    background: var(--gradient-orange);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glowing Button */
+  .btn-glow {
+    @apply relative overflow-hidden;
+    background: var(--gradient-orange);
+    box-shadow: var(--shadow-button);
+  }
+
+  .btn-glow::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, hsl(32 100% 60%), hsl(24 100% 55%));
+  }
+
+  .btn-glow:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Pulse Animation */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(24 100% 50% / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(24 100% 50% / 0.6);
+    }
+  }
+
+  /* Hero Glow Background */
+  .hero-glow {
+    background: var(--gradient-hero-glow);
+  }
+
+  /* Animated Border */
+  .animated-border {
+    @apply relative;
+  }
+
+  .animated-border::before {
+    content: '';
+    @apply absolute -inset-[1px] rounded-2xl opacity-0 transition-opacity duration-500;
+    background: var(--gradient-orange);
+    z-index: -1;
+  }
+
+  .animated-border:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Grid Pattern */
+  .grid-pattern {
+    background-image: 
+      linear-gradient(to right, hsl(0 0% 100% / 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Floating Animation */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  /* Particle Glow */
+  .particle-glow {
+    @apply absolute rounded-full;
+    background: radial-gradient(circle, hsl(24 100% 50% / 0.8), transparent 70%);
+    filter: blur(1px);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-obsidian {
+    background-color: hsl(var(--obsidian));
+  }
+
+  .bg-obsidian-light {
+    background-color: hsl(var(--obsidian-light));
+  }
+
+  .bg-glass {
+    background-color: hsl(var(--glass-white));
+  }
+
+  .bg-glass-hover {
+    background-color: hsl(var(--glass-hover));
+  }
+
+  .border-glass-border {
+    border-color: hsl(var(--glass-border));
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px hsl(24 100% 50% / 0.5);
   }
 }
