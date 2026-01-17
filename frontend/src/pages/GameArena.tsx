@@ -33,7 +33,7 @@ const gameInfo: Record<string, { name: string; icon: string; color: string }> = 
   "logic-grid": { name: "Logic Grid", icon: "🧩", color: "hsl(260 67% 55%)" },
   "number-recall": { name: "Number Recall", icon: "🧠", color: "hsl(190 75% 45%)" },
   "snakes-ladders": { name: "Snakes & Ladders", icon: "🪜", color: "hsl(120 60% 45%)" },
-  "snake-arena": { name: "Snake Arena", icon: "🐍", color: "hsl(142 85% 35%)" },
+  "snakes-ladders": { name: "Snakes & Ladders", icon: "🪜", color: "hsl(120 60% 45%)" },
 };
 
 const GameArena = () => {
@@ -140,8 +140,8 @@ const GameArena = () => {
                 />
 
                 {/* Game Board */}
-                <div className="flex-1 flex items-center justify-center py-4">
-                  <GameBoard />
+                <div className="flex-1 flex items-center justify-center py-4 overflow-auto">
+                  <GameBoard gameId={gameId} />
                 </div>
 
                 {/* Player HUD */}
@@ -184,8 +184,8 @@ const GameArena = () => {
                   />
 
                   {/* Game Board */}
-                  <div className="flex-1 flex items-center justify-center">
-                    <GameBoard />
+                  <div className="flex-1 flex items-center justify-center overflow-auto">
+                    <GameBoard gameId={gameId} />
                   </div>
 
                   {/* Player HUD */}

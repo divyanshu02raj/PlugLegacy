@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import logo from "@/assets/no_bg_logoo.png";
+import logo from "@/assets/logo.png";
 import ParticleGrid from "../ParticleGrid";
 
 const AuthLayout = ({ children }) => {
