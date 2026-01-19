@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/small_logo.png";
 
 const navLinks = [
     { name: "Games", href: "/#games" },
