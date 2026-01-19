@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
 const navLinks = [
-    { name: "Games", href: "#games" },
-    { name: "Features", href: "#features" },
-    { name: "Community", href: "#community" },
-    { name: "About", href: "#about" },
+    { name: "Games", href: "/#games" },
+    { name: "Features", href: "/#features" },
+    { name: "Community", href: "/#community" },
+    { name: "About", href: "/#about" },
 ];
 
 const Navbar = () => {
@@ -23,7 +24,7 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="glass-card px-6 py-3 flex items-center justify-between">
                     {/* Logo with subtle glow */}
-                    <a href="#" className="flex-shrink-0 relative">
+                    <Link to="/" className="flex-shrink-0 relative">
                         <div
                             className="absolute inset-0 -m-4"
                             style={{
@@ -48,7 +49,7 @@ const Navbar = () => {
                                 }}
                             />
                         </div>
-                    </a>
+                    </Link>
 
                     {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center gap-8">
@@ -64,15 +65,27 @@ const Navbar = () => {
                                 {link.name}
                             </motion.a>
                         ))}
-                        <motion.a
-                            href="#play"
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.7 }}
-                            className="btn-glow pulse-glow px-6 py-2.5 rounded-full text-sm font-semibold text-primary-foreground"
+
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.6 }}
+                            className="flex items-center gap-6"
                         >
-                            Play Now
-                        </motion.a>
+                            <Link
+                                to="/login"
+                                className="text-foreground/80 hover:text-foreground transition-colors duration-300 text-sm font-medium"
+                            >
+                                Login
+                            </Link>
+
+                            <Link
+                                to="/signup"
+                                className="btn-glow pulse-glow px-6 py-2.5 rounded-full text-sm font-semibold text-primary-foreground transform hover:scale-105 transition-all"
+                            >
+                                Play Now
+                            </Link>
+                        </motion.div>
                     </div>
 
                     {/* Mobile Menu Button */}
@@ -102,12 +115,22 @@ const Navbar = () => {
                                 {link.name}
                             </a>
                         ))}
-                        <a
-                            href="#play"
-                            className="btn-glow mt-4 block text-center px-6 py-3 rounded-full text-sm font-semibold text-primary-foreground"
-                        >
-                            Play Now
-                        </a>
+                        <div className="mt-4 flex flex-col gap-3">
+                            <Link
+                                to="/login"
+                                onClick={() => setIsOpen(false)}
+                                className="block text-center py-2 text-foreground/80 hover:text-foreground transition-colors font-medium"
+                            >
+                                Login
+                            </Link>
+                            <Link
+                                to="/signup"
+                                onClick={() => setIsOpen(false)}
+                                className="btn-glow block text-center px-6 py-3 rounded-full text-sm font-semibold text-primary-foreground"
+                            >
+                                Play Now
+                            </Link>
+                        </div>
                     </motion.div>
                 )}
             </div>

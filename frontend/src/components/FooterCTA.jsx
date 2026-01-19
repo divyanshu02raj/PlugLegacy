@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Zap, Twitter, Github, MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const FooterCTA = () => {
     return (
@@ -50,15 +51,13 @@ const FooterCTA = () => {
                         Join thousands of players competing in real-time. Your legacy starts now.
                     </p>
 
-                    <motion.a
-                        href="#play"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="inline-flex items-center gap-3 btn-glow pulse-glow px-12 py-6 rounded-full text-xl font-bold text-primary-foreground"
+                    <Link
+                        to="/signup"
+                        className="inline-flex items-center gap-3 btn-glow pulse-glow px-12 py-6 rounded-full text-xl font-bold text-primary-foreground transition-transform hover:scale-105 active:scale-95"
                     >
                         <Zap className="w-6 h-6" />
                         JOIN THE ARENA
-                    </motion.a>
+                    </Link>
                 </motion.div>
 
                 {/* Footer */}

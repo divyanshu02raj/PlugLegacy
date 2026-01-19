@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const GameCard = ({ name, icon, players, color, index }) => {
+const GameCard = ({ name, icon, players, color, index, id }) => {
     const [rotateX, setRotateX] = useState(0);
     const [rotateY, setRotateY] = useState(0);
+    const navigate = useNavigate();
 
     const handleMouseMove = (e) => {
         const card = e.currentTarget;
@@ -23,6 +25,14 @@ const GameCard = ({ name, icon, players, color, index }) => {
         setRotateY(0);
     };
 
+    const handleClick = () => {
+        if (id) {
+            navigate(`/play/${id}`);
+        } else {
+            navigate('/games');
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -31,6 +41,7 @@ const GameCard = ({ name, icon, players, color, index }) => {
             transition={{ duration: 0.5, delay: index * 0.1 }}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
+            onClick={handleClick}
             style={{
                 transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
                 transformStyle: "preserve-3d",

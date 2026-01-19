@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Play, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import ParticleGrid from "./ParticleGrid";
 
@@ -98,25 +99,21 @@ const HeroSection = () => {
                     transition={{ duration: 0.6, delay: 0.6 }}
                     className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                 >
-                    <motion.a
-                        href="#play"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="btn-glow pulse-glow px-8 py-4 rounded-full text-lg font-semibold text-primary-foreground flex items-center gap-2 group"
+                    <Link
+                        to="/signup"
+                        className="btn-glow pulse-glow px-8 py-4 rounded-full text-lg font-semibold text-primary-foreground flex items-center gap-2 group transition-transform hover:scale-105 active:scale-95"
                     >
                         <Zap className="w-5 h-5 group-hover:animate-pulse" />
                         Start Playing Now
-                    </motion.a>
+                    </Link>
 
-                    <motion.a
-                        href="#trailer"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="glass-card-hover px-8 py-4 rounded-full text-lg font-medium text-foreground flex items-center gap-2"
+                    <Link
+                        to="#"
+                        className="glass-card-hover px-8 py-4 rounded-full text-lg font-medium text-foreground flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
                     >
                         <Play className="w-5 h-5" />
                         Watch Trailer
-                    </motion.a>
+                    </Link>
                 </motion.div>
 
                 {/* Scroll Indicator */}

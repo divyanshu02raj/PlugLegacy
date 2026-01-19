@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Crown, Grid3X3, Hash, Type } from "lucide-react";
+import { Link } from "react-router-dom";
 import GameCard from "./GameCard";
 
 const games = [
@@ -8,12 +9,14 @@ const games = [
         icon: <Crown className="w-16 h-16 text-amber-400" />,
         players: 12453,
         color: "hsl(45 100% 50% / 0.3)",
+        id: "chess"
     },
     {
         name: "Sudoku",
         icon: <Grid3X3 className="w-16 h-16 text-blue-400" />,
         players: 8721,
         color: "hsl(210 100% 50% / 0.3)",
+        id: "sudoku"
     },
     {
         name: "Connect 4",
@@ -25,12 +28,14 @@ const games = [
         </div>,
         players: 6234,
         color: "hsl(0 100% 50% / 0.3)",
+        id: "connect-4"
     },
     {
         name: "Wordle",
         icon: <Type className="w-16 h-16 text-green-400" />,
         players: 15892,
         color: "hsl(120 100% 40% / 0.3)",
+        id: "wordle"
     },
 ];
 
@@ -75,6 +80,7 @@ const GamesSection = () => {
                     {games.map((game, index) => (
                         <GameCard
                             key={game.name}
+                            id={game.id}
                             name={game.name}
                             icon={game.icon}
                             players={game.players}
@@ -92,13 +98,13 @@ const GamesSection = () => {
                     transition={{ delay: 0.5 }}
                     className="text-center mt-12"
                 >
-                    <a
-                        href="#all-games"
+                    <Link
+                        to="/games"
                         className="text-primary hover:text-electric-amber transition-colors font-medium inline-flex items-center gap-2"
                     >
                         View All Games
                         <span className="text-xl">→</span>
-                    </a>
+                    </Link>
                 </motion.div>
             </div>
         </section>
