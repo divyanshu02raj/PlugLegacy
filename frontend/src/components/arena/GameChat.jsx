@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, ShieldAlert } from "lucide-react";
 
 const QUICK_EMOTES = ["😂", "😮", "😡", "👏", "🔥", "💀"];
 
@@ -48,6 +48,14 @@ const GameChat = () => {
                 <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                     2 online
+                </span>
+            </div>
+
+            {/* Safety Notice */}
+            <div className="px-4 py-2 bg-yellow-500/5 border-b border-yellow-500/10 flex items-center gap-2">
+                <ShieldAlert className="w-3 h-3 text-yellow-500/50" />
+                <span className="text-[10px] uppercase tracking-wider font-bold text-yellow-500/50">
+                    Chat is monitored. Be respectful.
                 </span>
             </div>
 

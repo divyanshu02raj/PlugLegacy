@@ -1,8 +1,68 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Flag, Handshake, Settings } from "lucide-react";
+import { Flag, Handshake, Settings, Mic, MicOff, Video, VideoOff, Lock, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0 }) => {
+const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFriend = false }) => {
     const isPlayer = position === "bottom";
+    const { toast } = useToast();
+
+    const [isMicOn, setIsMicOn] = useState(false);
+    const [isVideoOn, setIsVideoOn] = useState(false);
+
+    const handleMediaClick = (type) => {
+        if (!isFriend) return;
+
+        if (type === 'video' && !isVideoOn) {
+            // Simulate call request to opponent (shown as local toast for demo)
+            toast({
+                title: "Calling...",
+                description: `Requesting video call with ${username}`,
+            });
+            // In a real app, this would emit a socket event. 
+            // The *receiving* user would see the "Incoming video call" toast.
+            setIsVideoOn(true);
+        } else if (type === 'video') {
+            setIsVideoOn(false);
+        }
+
+        if (type === 'mic') {
+            setIsMicOn(!isMicOn);
+        }
+    };
+
+    const MediaButton = ({ type, isOn, icon: Icon, offIcon: OffIcon }) => (
+        <div className="relative group">
+            <motion.button
+                whileHover={isFriend ? { scale: 1.05 } : {}}
+                whileTap={isFriend ? { scale: 0.95 } : {}}
+                onClick={() => handleMediaClick(type)}
+                className={`
+                    w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-200
+                    ${!isFriend
+                        ? "bg-glass border-white/5 text-gray-600 cursor-not-allowed"
+                        : isOn
+                            ? "bg-white/10 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                            : "bg-glass border-glass-border text-muted-foreground hover:bg-glass-hover hover:text-white"
+                    }
+                `}
+            >
+                {isOn ? <Icon className="w-5 h-5" /> : <OffIcon className="w-5 h-5" />}
+            </motion.button>
+
+            {!isFriend && (
+                <>
+                    <div className="absolute -top-1 -right-1 bg-neutral-900 rounded-full p-0.5 border border-white/10">
+                        <Lock className="w-3 h-3 text-gray-500" />
+                    </div>
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-lg text-xs text-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                        Add friend to enable
+                    </div>
+                </>
+            )}
+        </div>
+    );
 
     return (
         <motion.div
@@ -36,8 +96,8 @@ const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0 }) =>
                         animate={{ opacity: [0.5, 1, 0.5] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                         className={`absolute inset-0 rounded-2xl ${isPlayer
-                                ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent"
-                                : "bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent"
+                            ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent"
+                            : "bg-gradient-to-r from-red-500/10 via-red-500/5 to-transparent"
                             }`}
                     />
                 )}
@@ -110,32 +170,51 @@ const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0 }) =>
                 )}
             </motion.div>
 
-            {/* Action Buttons (Only for player) */}
+            {/* Action Buttons (Video/Mic + Game Actions) */}
             {isPlayer && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 }}
-                    className="flex items-center justify-center gap-3 mt-3"
+                    className="flex items-center justify-center gap-6 mt-3"
                 >
-                    {[
-                        { icon: Flag, label: "Resign", color: "text-red-400 hover:bg-red-500/20" },
-                        { icon: Handshake, label: "Offer Draw", color: "text-yellow-400 hover:bg-yellow-500/20" },
-                        { icon: Settings, label: "Settings", color: "text-muted-foreground hover:bg-glass-hover" },
-                    ].map(({ icon: Icon, label, color }) => (
-                        <motion.button
-                            key={label}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`
-                flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border
-                transition-colors duration-200 ${color}
-              `}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span className="text-sm font-medium">{label}</span>
-                        </motion.button>
-                    ))}
+                    {/* Media Controls */}
+                    <div className="flex items-center gap-3 pr-6 border-r border-white/10">
+                        <MediaButton
+                            type="mic"
+                            isOn={isMicOn}
+                            icon={Mic}
+                            offIcon={MicOff}
+                        />
+                        <MediaButton
+                            type="video"
+                            isOn={isVideoOn}
+                            icon={Video}
+                            offIcon={VideoOff}
+                        />
+                    </div>
+
+                    {/* Game Actions */}
+                    <div className="flex items-center gap-3">
+                        {[
+                            { icon: Flag, label: "Resign", color: "text-red-400 hover:bg-red-500/20" },
+                            { icon: Handshake, label: "Offer Draw", color: "text-yellow-400 hover:bg-yellow-500/20" },
+                            { icon: Settings, label: "Settings", color: "text-muted-foreground hover:bg-glass-hover" },
+                        ].map(({ icon: Icon, label, color }) => (
+                            <motion.button
+                                key={label}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`
+                    flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border
+                    transition-colors duration-200 ${color}
+                  `}
+                            >
+                                <Icon className="w-4 h-4" />
+                                <span className="text-sm font-medium">{label}</span>
+                            </motion.button>
+                        ))}
+                    </div>
                 </motion.div>
             )}
         </motion.div>
