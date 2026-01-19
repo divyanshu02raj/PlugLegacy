@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import LibraryNavbar from "@/components/library/LibraryNavbar";
 import FeaturedBanner from "@/components/library/FeaturedBanner";
 import GameRow from "@/components/library/GameRow";
+import FriendsListSidebar from "@/components/FriendsListSidebar";
 
 // All games data
 const allGames = {
@@ -31,10 +32,10 @@ const allGames = {
     ],
     arcadeAction: [
         { id: "pong", name: "Pong", icon: "🏓", players: 567, tag: "Multiplayer", color: "hsl(170 75% 40% / 0.4)" },
-        { id: "brick-breaker", name: "Brick Breaker", icon: "🧱", players: 743, tag: "Solo", color: "hsl(15 85% 55% / 0.4)" },
-        { id: "tetris", name: "Tetris", icon: "🧱", players: 1823, tag: "Solo", color: "hsl(280 87% 50% / 0.4)" },
+        { id: "brick-breaker", name: "Brick Breaker", icon: "🏏", players: 743, tag: "Solo", color: "hsl(15 85% 55% / 0.4)" },
+        { id: "tetris", name: "Tetris", icon: "🟪", players: 1823, tag: "Solo", color: "hsl(280 87% 50% / 0.4)" },
         { id: "snake", name: "Snake", icon: "🐍", players: 2156, tag: "Solo", color: "hsl(142 71% 45% / 0.4)" },
-        { id: "snake-arena", name: "Snake Arena", icon: "🐍", players: 432, tag: "Multiplayer", color: "hsl(142 85% 35% / 0.4)" },
+        { id: "snakes-ladders", name: "Snakes & Ladders", icon: "🪜", players: 876, tag: "Multiplayer", color: "hsl(45 80% 45% / 0.4)" },
     ],
     speedSkill: [
         { id: "speed-math", name: "Speed Math", icon: "➕", players: 654, tag: "Solo", color: "hsl(220 85% 55% / 0.4)" },
@@ -119,6 +120,9 @@ const GameLibrary = () => {
                     </div>
                 </footer>
             </div>
+
+            {/* Friends List Sidebar */}
+            <FriendsListSidebar />
         </motion.div>
     );
 };

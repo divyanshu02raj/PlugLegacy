@@ -92,6 +92,42 @@
     --border: 0 0% 100% / 0.1;
     --input: 0 0% 100% / 0.1;
     --ring: 24 100% 50%;
+
+    /* Custom PlugLegacy Colors - Dark */
+    --obsidian: 240 10% 3.9%;
+    --obsidian-light: 240 6% 10%;
+    --glass-white: 0 0% 100% / 0.05;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-hover: 0 0% 100% / 0.1;
+  }
+
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 24 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 24 100% 50%;
+
+    /* Custom PlugLegacy Colors - Light */
+    --obsidian: 240 5% 96%;
+    --obsidian-light: 240 6% 93%;
+    --glass-white: 0 0% 0% / 0.03;
+    --glass-border: 0 0% 0% / 0.1;
+    --glass-hover: 0 0% 0% / 0.05;
   }
 }
 

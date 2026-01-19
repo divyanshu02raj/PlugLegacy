@@ -10,7 +10,7 @@ import GameChat from "@/components/arena/GameChat";
 import GameInfoPanel from "@/components/arena/GameInfoPanel";
 import MobileDrawer, { MobileMenuButton } from "@/components/arena/MobileDrawer";
 
-// Game metadata
+// Game metadata - All supported games
 const gameInfo = {
     chess: { name: "Chess", icon: "♟️", color: "hsl(24 100% 50%)" },
     sudoku: { name: "Sudoku", icon: "🔢", color: "hsl(200 95% 48%)" },

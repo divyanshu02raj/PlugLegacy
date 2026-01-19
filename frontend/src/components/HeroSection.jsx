@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Play, Zap } from "lucide-react";
-import logo from "@/assets/no_bg_logoo.png";
+import logo from "@/assets/logo.png";
 import ParticleGrid from "./ParticleGrid";
 
 const HeroSection = () => {

@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { Bell, Search, Settings, User } from "lucide-react";
+import { Search, Settings, User } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 
 const LibraryNavbar = () => {
     const [searchFocused, setSearchFocused] = useState(false);
@@ -76,20 +77,14 @@ const LibraryNavbar = () => {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-2">
-                        {/* Notifications */}
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="relative p-3 rounded-xl glass-card-hover"
-                        >
-                            <Bell className="w-5 h-5 text-muted-foreground" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
-                        </motion.button>
+                        {/* Notifications Dropdown */}
+                        <NotificationsDropdown />
 
                         {/* Settings */}
                         <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate("/settings")}
                             className="p-3 rounded-xl glass-card-hover"
                         >
                             <Settings className="w-5 h-5 text-muted-foreground" />
@@ -99,6 +94,7 @@ const LibraryNavbar = () => {
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
+                            onClick={() => navigate("/profile")}
                             className="flex items-center gap-3 px-4 py-2 rounded-xl glass-card-hover"
                         >
                             <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
