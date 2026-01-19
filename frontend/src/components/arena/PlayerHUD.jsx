@@ -3,30 +3,18 @@ import { motion } from "framer-motion";
 import { Flag, Handshake, Settings, Mic, MicOff, Video, VideoOff, Lock, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFriend = false }) => {
+const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFriend = false, isVideoActive = false, onMediaToggle }) => {
     const isPlayer = position === "bottom";
     const { toast } = useToast();
 
     const [isMicOn, setIsMicOn] = useState(false);
-    const [isVideoOn, setIsVideoOn] = useState(false);
 
     const handleMediaClick = (type) => {
         if (!isFriend) return;
 
-        if (type === 'video' && !isVideoOn) {
-            // Simulate call request to opponent (shown as local toast for demo)
-            toast({
-                title: "Calling...",
-                description: `Requesting video call with ${username}`,
-            });
-            // In a real app, this would emit a socket event. 
-            // The *receiving* user would see the "Incoming video call" toast.
-            setIsVideoOn(true);
-        } else if (type === 'video') {
-            setIsVideoOn(false);
-        }
-
-        if (type === 'mic') {
+        if (type === 'video') {
+            if (onMediaToggle) onMediaToggle();
+        } else if (type === 'mic') {
             setIsMicOn(!isMicOn);
         }
     };
@@ -188,7 +176,7 @@ const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFr
                         />
                         <MediaButton
                             type="video"
-                            isOn={isVideoOn}
+                            isOn={isVideoActive}
                             icon={Video}
                             offIcon={VideoOff}
                         />

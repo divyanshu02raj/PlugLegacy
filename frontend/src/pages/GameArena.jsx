@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Maximize2, Volume2, VolumeX } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,6 +9,7 @@ import GameBoard from "@/components/arena/GameBoard";
 import GameChat from "@/components/arena/GameChat";
 import GameInfoPanel from "@/components/arena/GameInfoPanel";
 import MobileDrawer, { MobileMenuButton } from "@/components/arena/MobileDrawer";
+import VideoOverlay from "@/components/arena/VideoOverlay";
 
 // Game metadata - All supported games
 const gameInfo = {
@@ -48,6 +49,17 @@ const GameArena = () => {
     // Mock data
     const isPlayerTurn = true;
 
+    // Video Call State
+    const [isVideoCallActive, setIsVideoCallActive] = useState(false);
+    const [isCameraOff, setIsCameraOff] = useState(false);
+
+    // Import useToast if not already top-level or use logic here. 
+    // Since GameArena doesn't have toast imported, let's keep it simple or import it.
+    // For now, simpler toggle.
+    const handleVideoToggle = () => {
+        setIsVideoCallActive(!isVideoCallActive);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -56,6 +68,17 @@ const GameArena = () => {
             transition={{ duration: 0.4 }}
             className="min-h-screen bg-background overflow-hidden"
         >
+            <AnimatePresence>
+                {isVideoCallActive && (
+                    <VideoOverlay
+                        onClose={() => setIsVideoCallActive(false)}
+                        isMuted={isMuted}
+                        setIsMuted={setIsMuted}
+                        isCameraOff={isCameraOff}
+                        setIsCameraOff={setIsCameraOff}
+                    />
+                )}
+            </AnimatePresence>
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-gradient-to-b from-obsidian via-background to-obsidian" />
@@ -151,6 +174,9 @@ const GameArena = () => {
                                     time="2:52"
                                     isActive={isPlayerTurn}
                                     score={1}
+                                    isFriend={true}
+                                    isVideoActive={isVideoCallActive}
+                                    onMediaToggle={handleVideoToggle}
                                 />
 
                                 {/* Mobile Menu Button */}
@@ -195,6 +221,9 @@ const GameArena = () => {
                                         time="2:52"
                                         isActive={isPlayerTurn}
                                         score={1}
+                                        isFriend={true}
+                                        isVideoActive={isVideoCallActive}
+                                        onMediaToggle={handleVideoToggle}
                                     />
                                 </div>
 
