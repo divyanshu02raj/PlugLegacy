@@ -74,13 +74,6 @@ const Navbar = () => {
                         >
                             <Link
                                 to="/login"
-                                className="text-foreground/80 hover:text-foreground transition-colors duration-300 text-sm font-medium"
-                            >
-                                Login
-                            </Link>
-
-                            <Link
-                                to="/signup"
                                 className="btn-glow pulse-glow px-6 py-2.5 rounded-full text-sm font-semibold text-primary-foreground transform hover:scale-105 transition-all"
                             >
                                 Play Now
@@ -118,13 +111,6 @@ const Navbar = () => {
                         <div className="mt-4 flex flex-col gap-3">
                             <Link
                                 to="/login"
-                                onClick={() => setIsOpen(false)}
-                                className="block text-center py-2 text-foreground/80 hover:text-foreground transition-colors font-medium"
-                            >
-                                Login
-                            </Link>
-                            <Link
-                                to="/signup"
                                 onClick={() => setIsOpen(false)}
                                 className="btn-glow block text-center px-6 py-3 rounded-full text-sm font-semibold text-primary-foreground"
                             >
