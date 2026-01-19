@@ -49,15 +49,21 @@ const GameArena = () => {
     // Mock data
     const isPlayerTurn = true;
 
-    // Video Call State
-    const [isVideoCallActive, setIsVideoCallActive] = useState(false);
-    const [isCameraOff, setIsCameraOff] = useState(false);
+    // Call State (Voice & Video)
+    const [isCallActive, setIsCallActive] = useState(false);
+    const [isCallMuted, setIsCallMuted] = useState(false);
+    const [isLocalVideoOn, setIsLocalVideoOn] = useState(false);
 
-    // Import useToast if not already top-level or use logic here. 
-    // Since GameArena doesn't have toast imported, let's keep it simple or import it.
-    // For now, simpler toggle.
-    const handleVideoToggle = () => {
-        setIsVideoCallActive(!isVideoCallActive);
+    const handleStartCall = (type) => {
+        setIsCallActive(true);
+        setIsLocalVideoOn(type === 'video');
+        setIsCallMuted(false);
+    };
+
+    const handleEndCall = () => {
+        setIsCallActive(false);
+        setIsLocalVideoOn(false);
+        setIsCallMuted(false);
     };
 
     return (
@@ -69,13 +75,13 @@ const GameArena = () => {
             className="min-h-screen bg-background overflow-hidden"
         >
             <AnimatePresence>
-                {isVideoCallActive && (
+                {isCallActive && (
                     <VideoOverlay
-                        onClose={() => setIsVideoCallActive(false)}
-                        isMuted={isMuted}
-                        setIsMuted={setIsMuted}
-                        isCameraOff={isCameraOff}
-                        setIsCameraOff={setIsCameraOff}
+                        onClose={handleEndCall}
+                        isMuted={isCallMuted}
+                        setIsMuted={setIsCallMuted}
+                        isCameraOff={!isLocalVideoOn}
+                        setIsCameraOff={(val) => setIsLocalVideoOn(!val)}
                     />
                 )}
             </AnimatePresence>
@@ -175,8 +181,12 @@ const GameArena = () => {
                                     isActive={isPlayerTurn}
                                     score={1}
                                     isFriend={true}
-                                    isVideoActive={isVideoCallActive}
-                                    onMediaToggle={handleVideoToggle}
+                                    isCallActive={isCallActive}
+                                    isCallMuted={isCallMuted}
+                                    isLocalVideoOn={isLocalVideoOn}
+                                    onStartCall={handleStartCall}
+                                    onToggleMute={setIsCallMuted}
+                                    onToggleVideo={setIsLocalVideoOn}
                                 />
 
                                 {/* Mobile Menu Button */}
@@ -222,8 +232,12 @@ const GameArena = () => {
                                         isActive={isPlayerTurn}
                                         score={1}
                                         isFriend={true}
-                                        isVideoActive={isVideoCallActive}
-                                        onMediaToggle={handleVideoToggle}
+                                        isCallActive={isCallActive}
+                                        isCallMuted={isCallMuted}
+                                        isLocalVideoOn={isLocalVideoOn}
+                                        onStartCall={handleStartCall}
+                                        onToggleMute={setIsCallMuted}
+                                        onToggleVideo={setIsLocalVideoOn}
                                     />
                                 </div>
 

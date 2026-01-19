@@ -3,19 +3,32 @@ import { motion } from "framer-motion";
 import { Flag, Handshake, Settings, Mic, MicOff, Video, VideoOff, Lock, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFriend = false, isVideoActive = false, onMediaToggle }) => {
+const PlayerHUD = ({
+    position, username, avatar, time, isActive,
+    score = 0, isFriend = false,
+    isCallActive = false, isCallMuted = false, isLocalVideoOn = false,
+    onStartCall, onToggleMute, onToggleVideo
+}) => {
     const isPlayer = position === "bottom";
     const { toast } = useToast();
-
-    const [isMicOn, setIsMicOn] = useState(false);
 
     const handleMediaClick = (type) => {
         if (!isFriend) return;
 
         if (type === 'video') {
-            if (onMediaToggle) onMediaToggle();
+            if (!isCallActive) {
+                toast({ title: "Video Call", description: `Calling ${username}...` });
+                if (onStartCall) onStartCall('video');
+            } else {
+                if (onToggleVideo) onToggleVideo(!isLocalVideoOn);
+            }
         } else if (type === 'mic') {
-            setIsMicOn(!isMicOn);
+            if (!isCallActive) {
+                toast({ title: "Voice Call", description: `Calling ${username}...` });
+                if (onStartCall) onStartCall('voice');
+            } else {
+                if (onToggleMute) onToggleMute(!isCallMuted);
+            }
         }
     };
 
@@ -170,13 +183,13 @@ const PlayerHUD = ({ position, username, avatar, time, isActive, score = 0, isFr
                     <div className="flex items-center gap-3 pr-6 border-r border-white/10">
                         <MediaButton
                             type="mic"
-                            isOn={isMicOn}
+                            isOn={isCallActive && !isCallMuted}
                             icon={Mic}
                             offIcon={MicOff}
                         />
                         <MediaButton
                             type="video"
-                            isOn={isVideoActive}
+                            isOn={isLocalVideoOn}
                             icon={Video}
                             offIcon={VideoOff}
                         />
