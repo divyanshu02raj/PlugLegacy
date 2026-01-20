@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
-const mockProfile = {
+const otherProfile = {
     username: "ProPlayer99",
     avatar: "🤖",
     level: 42,
@@ -30,12 +30,36 @@ const mockProfile = {
     ],
 };
 
+const myProfile = {
+    username: "You",
+    avatar: "👤",
+    level: 15,
+    title: "Rising Star",
+    joinDate: "January 2025",
+    totalWins: 85,
+    totalLosses: 42,
+    winStreak: 3,
+    elo: 1450,
+    gamesPlayed: 127,
+    favoriteGame: "Tetris",
+    recentMatches: [
+        { game: "Tetris", opponent: "BlockMaster", result: "loss", eloChange: -12, time: "1 hour ago" },
+        { game: "Chess", opponent: "NoviceUser", result: "win", eloChange: +25, time: "Yesterday" },
+    ],
+    achievements: [
+        { icon: "🌱", name: "Newcomer", desc: "Play 100 games" },
+        { icon: "🚀", name: "Liftoff", desc: "Win 5 in a row" },
+    ],
+};
+
 const Profile = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [isFriend, setIsFriend] = useState(false);
 
-    const winRate = ((mockProfile.totalWins / mockProfile.gamesPlayed) * 100).toFixed(1);
+    const profile = !id ? myProfile : otherProfile;
+
+    const winRate = ((profile.totalWins / profile.gamesPlayed) * 100).toFixed(1);
 
     return (
         <motion.div
@@ -81,50 +105,64 @@ const Profile = () => {
                             {/* Avatar */}
                             <div className="relative">
                                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center text-6xl border-4 border-primary/50 shadow-lg shadow-primary/20">
-                                    {mockProfile.avatar}
+                                    {profile.avatar}
                                 </div>
                                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary rounded-full text-xs font-bold text-primary-foreground">
-                                    LVL {mockProfile.level}
+                                    LVL {profile.level}
                                 </div>
                             </div>
 
                             {/* Info */}
                             <div className="flex-1 text-center md:text-left">
                                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 mb-2">
-                                    <h1 className="text-3xl font-bold">{mockProfile.username}</h1>
+                                    <h1 className="text-3xl font-bold">{profile.username}</h1>
                                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded-full text-yellow-400 text-sm font-medium">
                                         <Star className="w-4 h-4" />
-                                        {mockProfile.title}
+                                        {profile.title}
                                     </span>
                                 </div>
-                                <p className="text-muted-foreground mb-4">Playing since {mockProfile.joinDate}</p>
+                                <p className="text-muted-foreground mb-4">Playing since {profile.joinDate}</p>
 
                                 {/* Action Buttons */}
                                 <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => setIsFriend(!isFriend)}
-                                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${isFriend ? "bg-green-500/20 border border-green-500/30 text-green-400" : "btn-glow"}`}
-                                    >
-                                        <UserPlus className="w-5 h-5" />
-                                        {isFriend ? "Friends" : "Add Friend"}
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold glass-card-hover border border-glass-border"
-                                    >
-                                        <Swords className="w-5 h-5" />
-                                        Challenge
-                                    </motion.button>
+                                    {!id ? (
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => navigate("/profile-setup")}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold btn-glow"
+                                        >
+                                            <Settings className="w-5 h-5" />
+                                            Edit Profile
+                                        </motion.button>
+                                    ) : (
+                                        <>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => setIsFriend(!isFriend)}
+                                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${isFriend ? "bg-green-500/20 border border-green-500/30 text-green-400" : "btn-glow"}`}
+                                            >
+                                                <UserPlus className="w-5 h-5" />
+                                                {isFriend ? "Friends" : "Add Friend"}
+                                            </motion.button>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold glass-card-hover border border-glass-border"
+                                            >
+                                                <Swords className="w-5 h-5" />
+                                                Challenge
+                                            </motion.button>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
                             {/* ELO Badge */}
                             <div className="text-center p-6 bg-gradient-to-br from-primary/20 to-transparent rounded-2xl border border-primary/30">
                                 <p className="text-sm text-muted-foreground mb-1">ELO Rating</p>
-                                <p className="text-4xl font-bold gradient-text">{mockProfile.elo}</p>
+                                <p className="text-4xl font-bold gradient-text">{profile.elo}</p>
                             </div>
                         </div>
                     </motion.div>
@@ -132,10 +170,10 @@ const Profile = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         {[
-                            { icon: Trophy, label: "Total Wins", value: mockProfile.totalWins, color: "text-green-400" },
+                            { icon: Trophy, label: "Total Wins", value: profile.totalWins, color: "text-green-400" },
                             { icon: Target, label: "Win Rate", value: `${winRate}%`, color: "text-blue-400" },
-                            { icon: Flame, label: "Win Streak", value: mockProfile.winStreak, color: "text-orange-400" },
-                            { icon: Clock, label: "Games Played", value: mockProfile.gamesPlayed, color: "text-purple-400" },
+                            { icon: Flame, label: "Win Streak", value: profile.winStreak, color: "text-orange-400" },
+                            { icon: Clock, label: "Games Played", value: profile.gamesPlayed, color: "text-purple-400" },
                         ].map((stat, index) => (
                             <motion.div
                                 key={stat.label}
@@ -164,7 +202,7 @@ const Profile = () => {
                                 Recent Matches
                             </h2>
                             <div className="space-y-3">
-                                {mockProfile.recentMatches.map((match, index) => (
+                                {profile.recentMatches.map((match, index) => (
                                     <div
                                         key={index}
                                         className="flex items-center justify-between p-3 bg-white/5 rounded-xl"
@@ -199,7 +237,7 @@ const Profile = () => {
                                 Achievements
                             </h2>
                             <div className="grid grid-cols-2 gap-3">
-                                {mockProfile.achievements.map((achievement, index) => (
+                                {profile.achievements.map((achievement, index) => (
                                     <div
                                         key={index}
                                         className="p-4 bg-white/5 rounded-xl text-center hover:bg-white/10 transition-colors"

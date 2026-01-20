@@ -147,6 +147,7 @@
 }
 
 @layer components {
+
   /* Glass Card */
   .glass-card {
     @apply bg-glass backdrop-blur-xl border border-glass-border rounded-2xl;
@@ -200,9 +201,12 @@
   }
 
   @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 20px hsl(24 100% 50% / 0.4);
     }
+
     50% {
       box-shadow: 0 0 40px hsl(24 100% 50% / 0.6);
     }
@@ -231,7 +235,7 @@
 
   /* Grid Pattern */
   .grid-pattern {
-    background-image: 
+    background-image:
       linear-gradient(to right, hsl(0 0% 100% / 0.03) 1px, transparent 1px),
       linear-gradient(to bottom, hsl(0 0% 100% / 0.03) 1px, transparent 1px);
     background-size: 60px 60px;
@@ -243,9 +247,12 @@
   }
 
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0px);
     }
+
     50% {
       transform: translateY(-20px);
     }

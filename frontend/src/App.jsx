@@ -34,6 +34,7 @@ const App = () => (
                         <Route path="/games" element={<GameLibrary />} />
                         <Route path="/play/:gameId" element={<GameArena />} />
                         <Route path="/leaderboard" element={<Leaderboard />} />
+                        <Route path="/profile" element={<Profile />} />
                         <Route path="/profile/:id" element={<Profile />} />
                         <Route path="/settings" element={<Settings />} />
                         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
