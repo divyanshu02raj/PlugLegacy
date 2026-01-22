@@ -3,28 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Swords, UserPlus, Trophy, X, Check } from "lucide-react";
 import { friendService } from "../services/api";
 
-const mockNotifications = [
-    {
-        id: 1,
-        type: "invite",
-        title: "Game Invite",
-        message: "Alex challenged you to a Chess match",
-        time: "2 min ago",
-        read: false,
-    },
-    {
-        id: 3,
-        type: "tournament",
-        title: "Tournament Starting",
-        message: "Weekly Chess Tournament starts in 1 hour",
-        time: "1 hour ago",
-        read: true,
-    },
-];
+
 
 const NotificationsDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [notifications, setNotifications] = useState(mockNotifications);
+    const [notifications, setNotifications] = useState([]);
     const [friendRequests, setFriendRequests] = useState([]);
 
     useEffect(() => {
