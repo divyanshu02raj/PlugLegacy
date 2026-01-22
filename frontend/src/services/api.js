@@ -57,6 +57,14 @@ export const userService = {
     },
     updateProfile: async (data) => {
         const response = await api.put('/users/profile', data);
+        if (response.data) {
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            const updatedUser = { ...currentUser, ...response.data };
+            console.log("Updating local storage user:", updatedUser); // DEBUG
+            localStorage.setItem('user', JSON.stringify(updatedUser)); // Update local storage
+            console.log("Dispatching user-update event"); // DEBUG
+            window.dispatchEvent(new Event('user-update')); // Dispatch event
+        }
         return response.data;
     },
     getAllUsers: async () => {

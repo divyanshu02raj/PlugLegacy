@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
-import { userService } from "../../services/api";
+import { userService, authService } from "../../services/api";
 import { getAvatarByName } from "../../constants/avatars";
 
 const LibraryNavbar = () => {
@@ -12,6 +12,7 @@ const LibraryNavbar = () => {
     const [searchValue, setSearchValue] = useState("");
     const [allUsers, setAllUsers] = useState([]);
     const [searchResults, setSearchResults] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
     const navigate = useNavigate();
     const searchRef = useRef(null);
 
@@ -20,11 +21,26 @@ const LibraryNavbar = () => {
             try {
                 const users = await userService.getAllUsers();
                 setAllUsers(users);
+
+                const user = authService.getCurrentUser();
+                if (user) {
+                    setCurrentUser(user);
+                }
             } catch (error) {
                 console.error("Failed to load users for search", error);
             }
         };
         fetchUsers();
+
+        const handleUserUpdate = () => {
+            const user = authService.getCurrentUser();
+            if (user) {
+                setCurrentUser(user);
+            }
+        }
+
+        window.addEventListener('user-update', handleUserUpdate);
+        return () => window.removeEventListener('user-update', handleUserUpdate);
     }, []);
 
     useEffect(() => {
@@ -56,6 +72,9 @@ const LibraryNavbar = () => {
         setSearchValue("");
         setSearchFocused(false);
     };
+
+    const userAvatarData = currentUser ? getAvatarByName(currentUser.avatar) : null;
+    const UserIcon = userAvatarData ? userAvatarData.icon : User;
 
     return (
         <motion.nav
@@ -182,10 +201,12 @@ const LibraryNavbar = () => {
                             onClick={() => navigate("/profile")}
                             className="flex items-center gap-3 px-4 py-2 rounded-xl glass-card-hover"
                         >
-                            <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-                                <User className="w-4 h-4 text-primary" />
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userAvatarData ? `bg-gradient-to-br ${userAvatarData.color}` : "bg-primary/20 border border-primary/30"}`}>
+                                <UserIcon className={`w-4 h-4 ${userAvatarData ? "text-white" : "text-primary"}`} />
                             </div>
-                            <span className="text-sm font-medium text-foreground hidden sm:block">Profile</span>
+                            <span className="text-sm font-medium text-foreground hidden sm:block">
+                                {currentUser ? currentUser.username : "Profile"}
+                            </span>
                         </motion.button>
                     </div>
                 </div>
