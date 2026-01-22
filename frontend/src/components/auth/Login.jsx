@@ -48,7 +48,7 @@ const Login = () => {
         setIsLoading(true);
         try {
             await authService.login(formData);
-            navigate("/");
+            navigate("/games");
         } catch (error) {
             setErrors(prev => ({
                 ...prev,

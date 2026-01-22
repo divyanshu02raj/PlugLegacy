@@ -25,7 +25,7 @@ const ProfileSetup = () => {
         if (!selectedAvatar) return;
         setIsExiting(true);
         await new Promise((resolve) => setTimeout(resolve, 600));
-        navigate("/");
+        navigate("/games");
     };
 
     const selectedAvatarData = avatars.find(a => a.id === selectedAvatar);
@@ -80,8 +80,8 @@ const ProfileSetup = () => {
                                     key={avatar.id}
                                     onClick={() => setSelectedAvatar(avatar.id)}
                                     className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 overflow-hidden group ${isSelected
-                                            ? "bg-glass-hover"
-                                            : "bg-obsidian-light/30 hover:bg-glass border border-transparent hover:border-glass-border"
+                                        ? "bg-glass-hover"
+                                        : "bg-obsidian-light/30 hover:bg-glass border border-transparent hover:border-glass-border"
                                         }`}
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -171,8 +171,8 @@ const ProfileSetup = () => {
                         onClick={handleEnterLobby}
                         disabled={!selectedAvatar}
                         className={`w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-3 transition-all duration-300 group ${selectedAvatar
-                                ? "btn-glow pulse-glow text-primary-foreground"
-                                : "bg-glass border border-glass-border text-muted-foreground cursor-not-allowed"
+                            ? "btn-glow pulse-glow text-primary-foreground"
+                            : "bg-glass border border-glass-border text-muted-foreground cursor-not-allowed"
                             }`}
                         whileHover={selectedAvatar ? { scale: 1.02 } : {}}
                         whileTap={selectedAvatar ? { scale: 0.98 } : {}}
