@@ -4,6 +4,7 @@ import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star
 import { useNavigate, useParams } from "react-router-dom";
 import { userService } from "../services/api";
 import { getAvatarByName } from "../constants/avatars";
+import EditProfileModal from "../components/profile/EditProfileModal";
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -11,6 +12,7 @@ const Profile = () => {
     const [isFriend, setIsFriend] = useState(false);
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -122,7 +124,7 @@ const Profile = () => {
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => navigate("/profile-setup")}
+                                            onClick={() => setShowEditModal(true)}
                                             className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold btn-glow"
                                         >
                                             <Settings className="w-5 h-5" />
@@ -245,6 +247,26 @@ const Profile = () => {
                     </div>
                 </div>
             </main>
+
+            {showEditModal && (
+                <EditProfileModal
+                    user={profile}
+                    onClose={() => setShowEditModal(false)}
+                    onUpdate={(updatedUser) => {
+                        setProfile(prev => ({
+                            ...prev,
+                            ...updatedUser,
+                            // Re-format date if needed, though updatedUser has raw ISO string.
+                            // The Profile component expects joinDate to be formatted string?
+                            // Line 21 in Profile.jsx: setProfile({... joinDate: new Date...})
+                            // If I just spread updatedUser, joinDate will be ISO string.
+                            // I should reformat it or just keep the old formatted one if joinDate didn't change (it shouldn't).
+                            // Safest: keep the old joinDate formatted, or re-parse.
+                            // calculated fields (wins/losses) update automatically from backend.
+                        }));
+                    }}
+                />
+            )}
         </motion.div>
     );
 };

@@ -66,6 +66,28 @@ const updateUserProfile = async (req, res) => {
         const user = await User.findById(req.user._id);
 
         if (user) {
+            if (req.body.username && req.body.username !== user.username) {
+                const userExists = await User.findOne({
+                    username: req.body.username,
+                    _id: { $ne: req.user._id }
+                });
+                if (userExists) {
+                    return res.status(400).json({ message: 'Username already taken' });
+                }
+                user.username = req.body.username;
+            }
+
+            if (req.body.email && req.body.email !== user.email) {
+                const emailExists = await User.findOne({
+                    email: req.body.email,
+                    _id: { $ne: req.user._id }
+                });
+                if (emailExists) {
+                    return res.status(400).json({ message: 'Email already taken' });
+                }
+                user.email = req.body.email;
+            }
+
             user.avatar = req.body.avatar || user.avatar;
 
             const updatedUser = await user.save();
