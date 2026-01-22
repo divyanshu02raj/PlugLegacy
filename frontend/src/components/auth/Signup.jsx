@@ -4,6 +4,8 @@ import { Mail, Lock, Eye, EyeOff, User, Loader2, Check, X, Zap, ArrowRight, Shie
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
 
+import { authService } from "../../services/api";
+
 const Signup = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +49,8 @@ const Signup = () => {
         if (formData.username.length >= 3) {
             setCheckingUsername(true);
             const timer = setTimeout(() => {
+                // Mock check can remain for UX feedback, or removed. I'll keep it for now as "instant feedback"
+                // But backend is truth.
                 const available = !["admin", "user", "test", "pluglegacy"].includes(formData.username.toLowerCase());
                 setUsernameAvailable(available);
                 setCheckingUsername(false);
@@ -64,7 +68,10 @@ const Signup = () => {
         if (!formData.username || formData.username.length < 3) {
             newErrors.username = "Username must be at least 3 characters";
             isValid = false;
-        } else if (!usernameAvailable) {
+        }
+        // Removing usernameAvailable check here to let backend decide, or keep it?
+        // Keep it for basic filtering.
+        else if (!usernameAvailable) {
             newErrors.username = "Username is not available";
             isValid = false;
         }
@@ -96,9 +103,23 @@ const Signup = () => {
         if (!validateForm()) return;
 
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setIsLoading(false);
-        navigate("/profile-setup");
+        try {
+            await authService.signup(formData);
+            navigate("/profile-setup");
+        } catch (error) {
+            const msg = error.response?.data?.message || "Signup failed";
+            setErrors(prev => ({
+                ...prev,
+                username: msg.includes('User') ? msg : prev.username,
+                email: msg.includes('email') ? msg : prev.email
+            }));
+            // Fallback if specific field not detected
+            if (!msg.includes('User') && !msg.includes('email')) {
+                setErrors(prev => ({ ...prev, username: msg }));
+            }
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleGoogleSignup = async () => {
@@ -282,8 +303,8 @@ const Signup = () => {
                                     <motion.div
                                         key={index}
                                         className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${index < passwordStrength
-                                                ? `${strengthColors[passwordStrength - 1]} ${strengthGlows[passwordStrength - 1]}`
-                                                : "bg-glass-border"
+                                            ? `${strengthColors[passwordStrength - 1]} ${strengthGlows[passwordStrength - 1]}`
+                                            : "bg-glass-border"
                                             }`}
                                         initial={{ scaleX: 0 }}
                                         animate={{ scaleX: 1 }}
@@ -294,9 +315,9 @@ const Signup = () => {
                             {passwordStrength > 0 && (
                                 <div className="flex items-center justify-between mt-2">
                                     <p className={`text-xs font-medium ${passwordStrength === 1 ? "text-red-400" :
-                                            passwordStrength === 2 ? "text-orange-400" :
-                                                passwordStrength === 3 ? "text-yellow-400" :
-                                                    "text-green-400"
+                                        passwordStrength === 2 ? "text-orange-400" :
+                                            passwordStrength === 3 ? "text-yellow-400" :
+                                                "text-green-400"
                                         }`}>
                                         {strengthLabels[passwordStrength - 1]}
                                     </p>
@@ -330,10 +351,10 @@ const Signup = () => {
                         <div
                             onClick={() => setAgreedToTerms(!agreedToTerms)}
                             className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-300 flex-shrink-0 ${agreedToTerms
-                                    ? "bg-primary border-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                                    : errors.terms
-                                        ? "border-destructive bg-obsidian-light/30"
-                                        : "border-glass-border group-hover:border-primary/50 bg-obsidian-light/30"
+                                ? "bg-primary border-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                : errors.terms
+                                    ? "border-destructive bg-obsidian-light/30"
+                                    : "border-glass-border group-hover:border-primary/50 bg-obsidian-light/30"
                                 }`}
                         >
                             {agreedToTerms && (

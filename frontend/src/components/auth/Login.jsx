@@ -4,6 +4,8 @@ import { Mail, Lock, Eye, EyeOff, Loader2, Zap, ArrowRight } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
 
+import { authService } from "../../services/api";
+
 const Login = () => {
     const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
@@ -44,9 +46,17 @@ const Login = () => {
         if (!validateForm()) return;
 
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setIsLoading(false);
-        navigate("/");
+        try {
+            await authService.login(formData);
+            navigate("/");
+        } catch (error) {
+            setErrors(prev => ({
+                ...prev,
+                email: error.response?.data?.message || "Invalid email or password"
+            }));
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleGoogleLogin = async () => {
@@ -213,8 +223,8 @@ const Login = () => {
                         <div
                             onClick={() => setRememberMe(!rememberMe)}
                             className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-300 ${rememberMe
-                                    ? "bg-primary border-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]"
-                                    : "border-glass-border group-hover:border-primary/50 bg-obsidian-light/30"
+                                ? "bg-primary border-primary shadow-[0_0_15px_rgba(249,115,22,0.4)]"
+                                : "border-glass-border group-hover:border-primary/50 bg-obsidian-light/30"
                                 }`}
                         >
                             {rememberMe && (
