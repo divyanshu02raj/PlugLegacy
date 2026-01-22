@@ -85,6 +85,10 @@ export const friendService = {
     getRequests: async () => {
         const response = await api.get('/friends/requests');
         return response.data;
+    },
+    removeFriend: async (friendId) => {
+        const response = await api.post(`/friends/remove/${friendId}`);
+        return response.data;
     }
 };
 

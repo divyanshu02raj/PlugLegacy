@@ -124,10 +124,39 @@ const getFriendRequests = async (req, res) => {
     }
 };
 
+// @desc    Remove a friend
+// @route   POST /api/friends/remove/:id
+// @access  Private
+const removeFriend = async (req, res) => {
+    try {
+        const friendId = req.params.id;
+        const userId = req.user._id;
+
+        const user = await User.findById(userId);
+        const friend = await User.findById(friendId);
+
+        if (!user || !friend) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Remove from friends lists
+        user.friends = user.friends.filter(id => id.toString() !== friendId);
+        friend.friends = friend.friends.filter(id => id.toString() !== userId.toString());
+
+        await user.save();
+        await friend.save();
+
+        res.json({ message: "Friend removed." });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     sendFriendRequest,
     acceptFriendRequest,
     rejectFriendRequest,
     getFriends,
-    getFriendRequests
+    getFriendRequests,
+    removeFriend
 };

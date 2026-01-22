@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings, Loader2 } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings, Loader2, UserMinus, AlertTriangle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { userService, friendService } from "../services/api";
 import { getAvatarByName } from "../constants/avatars";
@@ -13,6 +13,7 @@ const Profile = () => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -70,9 +71,21 @@ const Profile = () => {
             } else if (friendStatus === 'received') {
                 await friendService.acceptRequest(id);
                 setFriendStatus('friend');
+            } else if (friendStatus === 'friend') {
+                setShowUnfriendConfirm(true);
             }
         } catch (error) {
             console.error("Action failed:", error);
+        }
+    };
+
+    const confirmUnfriend = async () => {
+        try {
+            await friendService.removeFriend(id);
+            setFriendStatus('none');
+            setShowUnfriendConfirm(false);
+        } catch (error) {
+            console.error("Unfriend failed", error);
         }
     };
 
@@ -170,17 +183,17 @@ const Profile = () => {
                                     ) : (
                                         <>
                                             <motion.button
-                                                whileHover={friendStatus !== 'sent' && friendStatus !== 'friend' ? { scale: 1.05 } : {}}
-                                                whileTap={friendStatus !== 'sent' && friendStatus !== 'friend' ? { scale: 0.95 } : {}}
+                                                whileHover={friendStatus !== 'sent' ? { scale: 1.05 } : {}}
+                                                whileTap={friendStatus !== 'sent' ? { scale: 0.95 } : {}}
                                                 onClick={handleFriendAction}
-                                                disabled={friendStatus === 'sent' || friendStatus === 'friend'}
-                                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${friendStatus === 'friend' ? "bg-green-500/20 border border-green-500/30 text-green-400 cursor-default" :
+                                                disabled={friendStatus === 'sent'}
+                                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${friendStatus === 'friend' ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30" :
                                                     friendStatus === 'sent' ? "bg-white/10 text-muted-foreground cursor-default" :
                                                         "btn-glow"
                                                     }`}
                                             >
-                                                <UserPlus className="w-5 h-5" />
-                                                {friendStatus === 'friend' ? "Friends" :
+                                                {friendStatus === 'friend' ? <UserMinus className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                                                {friendStatus === 'friend' ? "Unfriend" :
                                                     friendStatus === 'sent' ? "Request Sent" :
                                                         friendStatus === 'received' ? "Accept Request" :
                                                             "Add Friend"}
@@ -298,21 +311,50 @@ const Profile = () => {
                     user={profile}
                     onClose={() => setShowEditModal(false)}
                     onUpdate={(updatedUser) => {
-                        setProfile(prev => ({
-                            ...prev,
-                            ...updatedUser,
-                            // Re-format date if needed, though updatedUser has raw ISO string.
-                            // The Profile component expects joinDate to be formatted string?
-                            // Line 21 in Profile.jsx: setProfile({... joinDate: new Date...})
-                            // If I just spread updatedUser, joinDate will be ISO string.
-                            // I should reformat it or just keep the old formatted one if joinDate didn't change (it shouldn't).
-                            // Safest: keep the old joinDate formatted, or re-parse.
-                            // calculated fields (wins/losses) update automatically from backend.
-                        }));
+                        setProfile({ ...profile, ...updatedUser });
+                        setShowEditModal(false);
                     }}
                 />
             )}
+
+            {/* Unfriend Confirmation Modal */}
+            {showUnfriendConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="glass-card w-full max-w-md p-6 rounded-2xl border border-red-500/30"
+                    >
+                        <div className="flex items-center gap-3 text-red-400 mb-4">
+                            <div className="p-3 bg-red-500/10 rounded-full">
+                                <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-xl font-bold">Unfriend {profile.username}?</h3>
+                        </div>
+
+                        <p className="text-muted-foreground mb-6">
+                            Are you sure you want to remove {profile.username} from your friends list? This action cannot be undone.
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowUnfriendConfirm(false)}
+                                className="px-4 py-2 rounded-xl hover:bg-white/5 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmUnfriend}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-semibold"
+                            >
+                                Unfriend
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </motion.div>
+
     );
 };
 
