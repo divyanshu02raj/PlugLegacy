@@ -58,6 +58,33 @@ export const userService = {
     updateProfile: async (data) => {
         const response = await api.put('/users/profile', data);
         return response.data;
+    },
+    getAllUsers: async () => {
+        const response = await api.get('/users');
+        return response.data;
+    }
+};
+
+export const friendService = {
+    sendRequest: async (userId) => {
+        const response = await api.post(`/friends/request/${userId}`);
+        return response.data;
+    },
+    acceptRequest: async (requesterId) => {
+        const response = await api.post(`/friends/accept/${requesterId}`);
+        return response.data;
+    },
+    rejectRequest: async (requesterId) => {
+        const response = await api.post(`/friends/reject/${requesterId}`);
+        return response.data;
+    },
+    getFriends: async () => {
+        const response = await api.get('/friends');
+        return response.data;
+    },
+    getRequests: async () => {
+        const response = await api.get('/friends/requests');
+        return response.data;
     }
 };
 

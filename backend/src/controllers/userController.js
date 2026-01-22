@@ -17,6 +17,9 @@ const getUserProfile = async (req, res) => {
                 wins: user.wins,
                 losses: user.losses,
                 joinDate: user.createdAt,
+                friends: user.friends,
+                friendRequests: user.friendRequests,
+                sentFriendRequests: user.sentFriendRequests,
                 // Calculated fields
                 gamesPlayed: user.wins + user.losses,
                 level: Math.floor(user.wins / 10) + 1, // Simple level logic
@@ -110,8 +113,21 @@ const updateUserProfile = async (req, res) => {
     }
 };
 
+// @desc    Get all users (for search)
+// @route   GET /api/users
+// @access  Private
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({ _id: { $ne: req.user._id } }).select('-password -email -friends -friendRequests -sentFriendRequests');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getUserProfile,
     getUserById,
-    updateUserProfile
+    updateUserProfile,
+    getAllUsers
 };

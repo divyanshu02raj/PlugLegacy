@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { userService } from "../services/api";
+import { userService, friendService } from "../services/api";
 import { getAvatarByName } from "../constants/avatars";
 import EditProfileModal from "../components/profile/EditProfileModal";
 
 const Profile = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    const [isFriend, setIsFriend] = useState(false);
+    const [friendStatus, setFriendStatus] = useState('none'); // none, friend, sent, received
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -17,11 +17,19 @@ const Profile = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const data = id ? await userService.getUserById(id) : await userService.getProfile();
+                // 1. Get My Profile (for relationship status)
+                const me = await userService.getProfile();
 
+                // 2. Get Target Profile
+                let target = me;
+                if (id && id !== me._id) {
+                    target = await userService.getUserById(id);
+                }
+
+                // 3. Set Profile Data
                 setProfile({
-                    ...data,
-                    joinDate: new Date(data.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                    ...target,
+                    joinDate: new Date(target.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
                     // Mock data for visual completeness until GameService is ready
                     recentMatches: [],
                     achievements: [
@@ -29,6 +37,20 @@ const Profile = () => {
                         { icon: "🌱", name: "New Blood", desc: "First Login" }
                     ]
                 });
+
+                // 4. Determine Status
+                if (id && id !== me._id) {
+                    if (me.friends.includes(id)) {
+                        setFriendStatus('friend');
+                    } else if (me.sentFriendRequests.includes(id)) {
+                        setFriendStatus('sent');
+                    } else if (me.friendRequests.includes(id)) {
+                        setFriendStatus('received');
+                    } else {
+                        setFriendStatus('none');
+                    }
+                }
+
             } catch (error) {
                 console.error("Error fetching profile:", error);
             } finally {
@@ -38,6 +60,21 @@ const Profile = () => {
 
         fetchProfile();
     }, [id]);
+
+    const handleFriendAction = async () => {
+        if (!id) return;
+        try {
+            if (friendStatus === 'none') {
+                await friendService.sendRequest(id);
+                setFriendStatus('sent');
+            } else if (friendStatus === 'received') {
+                await friendService.acceptRequest(id);
+                setFriendStatus('friend');
+            }
+        } catch (error) {
+            console.error("Action failed:", error);
+        }
+    };
 
     if (loading) {
         return (
@@ -133,14 +170,22 @@ const Profile = () => {
                                     ) : (
                                         <>
                                             <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => setIsFriend(!isFriend)}
-                                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${isFriend ? "bg-green-500/20 border border-green-500/30 text-green-400" : "btn-glow"}`}
+                                                whileHover={friendStatus !== 'sent' && friendStatus !== 'friend' ? { scale: 1.05 } : {}}
+                                                whileTap={friendStatus !== 'sent' && friendStatus !== 'friend' ? { scale: 0.95 } : {}}
+                                                onClick={handleFriendAction}
+                                                disabled={friendStatus === 'sent' || friendStatus === 'friend'}
+                                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors ${friendStatus === 'friend' ? "bg-green-500/20 border border-green-500/30 text-green-400 cursor-default" :
+                                                    friendStatus === 'sent' ? "bg-white/10 text-muted-foreground cursor-default" :
+                                                        "btn-glow"
+                                                    }`}
                                             >
                                                 <UserPlus className="w-5 h-5" />
-                                                {isFriend ? "Friends" : "Add Friend"}
+                                                {friendStatus === 'friend' ? "Friends" :
+                                                    friendStatus === 'sent' ? "Request Sent" :
+                                                        friendStatus === 'received' ? "Accept Request" :
+                                                            "Add Friend"}
                                             </motion.button>
+
                                             <motion.button
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}

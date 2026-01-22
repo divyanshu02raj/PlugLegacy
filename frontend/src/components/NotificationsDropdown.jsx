@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Swords, UserPlus, Trophy, X, Check } from "lucide-react";
+import { friendService } from "../services/api";
 
 const mockNotifications = [
     {
@@ -12,14 +13,6 @@ const mockNotifications = [
         read: false,
     },
     {
-        id: 2,
-        type: "friend",
-        title: "Friend Request",
-        message: "NeonSlayer wants to be your friend",
-        time: "15 min ago",
-        read: false,
-    },
-    {
         id: 3,
         type: "tournament",
         title: "Tournament Starting",
@@ -27,21 +20,50 @@ const mockNotifications = [
         time: "1 hour ago",
         read: true,
     },
-    {
-        id: 4,
-        type: "invite",
-        title: "Game Invite",
-        message: "ByteStorm wants to play Connect 4",
-        time: "3 hours ago",
-        read: true,
-    },
 ];
 
 const NotificationsDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState(mockNotifications);
+    const [friendRequests, setFriendRequests] = useState([]);
 
-    const unreadCount = notifications.filter((n) => !n.read).length;
+    useEffect(() => {
+        if (isOpen) {
+            fetchFriendRequests();
+        }
+    }, [isOpen]);
+
+    const fetchFriendRequests = async () => {
+        try {
+            const requests = await friendService.getRequests();
+            setFriendRequests(requests);
+        } catch (error) {
+            console.error("Failed to fetch friend requests", error);
+        }
+    };
+
+    const handleAccept = async (id) => {
+        try {
+            await friendService.acceptRequest(id);
+            // Refresh requests
+            fetchFriendRequests();
+        } catch (error) {
+            console.error("Failed to accept request", error);
+        }
+    };
+
+    const handleReject = async (id) => {
+        try {
+            await friendService.rejectRequest(id);
+            // Refresh requests
+            fetchFriendRequests();
+        } catch (error) {
+            console.error("Failed to reject request", error);
+        }
+    };
+
+    const totalNotifications = notifications.length + friendRequests.length;
+    const unreadCount = notifications.filter((n) => !n.read).length + friendRequests.length;
 
     const getIcon = (type) => {
         switch (type) {
@@ -109,37 +131,76 @@ const NotificationsDropdown = () => {
 
                             {/* Notifications List */}
                             <div className="max-h-[400px] overflow-y-auto">
-                                {notifications.length === 0 ? (
+                                {totalNotifications === 0 ? (
                                     <div className="px-4 py-8 text-center text-muted-foreground">
                                         <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                         <p>No notifications</p>
                                     </div>
                                 ) : (
-                                    notifications.map((notification) => (
-                                        <motion.div
-                                            key={notification.id}
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            className={`flex items-start gap-3 px-4 py-3 border-b border-glass-border hover:bg-white/5 transition-colors ${!notification.read ? "bg-primary/5" : ""}`}
-                                        >
-                                            <div className="shrink-0 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                                                {getIcon(notification.type)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-medium text-sm">{notification.title}</p>
-                                                <p className="text-xs text-muted-foreground truncate">{notification.message}</p>
-                                                <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
-                                            </div>
-                                            {!notification.read && (
-                                                <button
-                                                    onClick={() => markAsRead(notification.id)}
-                                                    className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors"
-                                                >
-                                                    <Check className="w-4 h-4 text-green-400" />
-                                                </button>
-                                            )}
-                                        </motion.div>
-                                    ))
+                                    <div className="flex flex-col">
+                                        {/* Friend Requests */}
+                                        {friendRequests.map((request) => (
+                                            <motion.div
+                                                key={request._id}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="flex items-start gap-3 px-4 py-3 border-b border-glass-border bg-primary/5 hover:bg-white/10 transition-colors"
+                                            >
+                                                <div className="shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                                    <UserPlus className="w-5 h-5 text-blue-400" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-sm">Friend Request</p>
+                                                    <p className="text-xs text-muted-foreground truncate">
+                                                        <span className="font-bold text-foreground">{request.username}</span> sent you a request
+                                                    </p>
+                                                    <div className="flex gap-2 mt-2">
+                                                        <button
+                                                            onClick={() => handleAccept(request._id)}
+                                                            className="flex items-center gap-1 px-3 py-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs rounded-full transition-colors"
+                                                        >
+                                                            <Check className="w-3 h-3" />
+                                                            Accept
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReject(request._id)}
+                                                            className="flex items-center gap-1 px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded-full transition-colors"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                            Decline
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+
+                                        {/* Other Notifications */}
+                                        {notifications.map((notification) => (
+                                            <motion.div
+                                                key={notification.id}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className={`flex items-start gap-3 px-4 py-3 border-b border-glass-border hover:bg-white/5 transition-colors ${!notification.read ? "bg-primary/5" : ""}`}
+                                            >
+                                                <div className="shrink-0 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                                                    {getIcon(notification.type)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium text-sm">{notification.title}</p>
+                                                    <p className="text-xs text-muted-foreground truncate">{notification.message}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                                                </div>
+                                                {!notification.read && (
+                                                    <button
+                                                        onClick={() => markAsRead(notification.id)}
+                                                        className="shrink-0 p-1 hover:bg-white/10 rounded-full transition-colors"
+                                                    >
+                                                        <Check className="w-4 h-4 text-green-400" />
+                                                    </button>
+                                                )}
+                                            </motion.div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </motion.div>
