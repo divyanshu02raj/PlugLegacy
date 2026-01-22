@@ -1,20 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Sword, Gamepad2, Skull, Crown, Zap, Shield, Ghost, Flame, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout";
-
-const avatars = [
-    { id: 1, icon: Bot, name: "Automaton", color: "from-cyan-400 to-blue-600" },
-    { id: 2, icon: Sword, name: "Shinobi", color: "from-purple-400 to-pink-600" },
-    { id: 3, icon: Gamepad2, name: "Retro", color: "from-green-400 to-emerald-600" },
-    { id: 4, icon: Skull, name: "Phantom", color: "from-gray-400 to-zinc-600" },
-    { id: 5, icon: Crown, name: "Royal", color: "from-yellow-400 to-amber-600" },
-    { id: 6, icon: Zap, name: "Electric", color: "from-orange-400 to-red-500" },
-    { id: 7, icon: Shield, name: "Guardian", color: "from-blue-400 to-indigo-600" },
-    { id: 8, icon: Ghost, name: "Specter", color: "from-violet-400 to-purple-600" },
-    { id: 9, icon: Flame, name: "Inferno", color: "from-red-400 to-orange-600" },
-];
+import { userService } from "../../services/api";
+import { AVATARS } from "../../constants/avatars";
 
 const ProfileSetup = () => {
     const navigate = useNavigate();
@@ -24,11 +14,21 @@ const ProfileSetup = () => {
     const handleEnterLobby = async () => {
         if (!selectedAvatar) return;
         setIsExiting(true);
+
+        try {
+            const avatarName = AVATARS.find(a => a.id === selectedAvatar)?.name;
+            if (avatarName) {
+                await userService.updateProfile({ avatar: avatarName });
+            }
+        } catch (error) {
+            console.error("Failed to save avatar:", error);
+        }
+
         await new Promise((resolve) => setTimeout(resolve, 600));
         navigate("/games");
     };
 
-    const selectedAvatarData = avatars.find(a => a.id === selectedAvatar);
+    const selectedAvatarData = AVATARS.find(a => a.id === selectedAvatar);
 
     return (
         <AnimatePresence mode="wait">
@@ -71,7 +71,7 @@ const ProfileSetup = () => {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 }}
                     >
-                        {avatars.map((avatar, index) => {
+                        {AVATARS.map((avatar, index) => {
                             const Icon = avatar.icon;
                             const isSelected = selectedAvatar === avatar.id;
 

@@ -1,65 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings } from "lucide-react";
+import { ArrowLeft, Trophy, Target, Flame, Clock, UserPlus, Swords, Shield, Star, Settings, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-
-const otherProfile = {
-    username: "ProPlayer99",
-    avatar: "🤖",
-    level: 42,
-    title: "Grandmaster",
-    joinDate: "March 2024",
-    totalWins: 1523,
-    totalLosses: 234,
-    winStreak: 12,
-    elo: 2456,
-    gamesPlayed: 1757,
-    favoriteGame: "Chess",
-    recentMatches: [
-        { game: "Chess", opponent: "NeonSlayer", result: "win", eloChange: +15, time: "2 hours ago" },
-        { game: "Chess", opponent: "ByteStorm", result: "win", eloChange: +12, time: "5 hours ago" },
-        { game: "Connect 4", opponent: "QuantumQueen", result: "loss", eloChange: -8, time: "Yesterday" },
-        { game: "Sudoku", opponent: "CryptoKnight", result: "win", eloChange: +10, time: "2 days ago" },
-        { game: "Chess", opponent: "VoidWalker", result: "win", eloChange: +18, time: "3 days ago" },
-    ],
-    achievements: [
-        { icon: "🏆", name: "Champion", desc: "Win 1000 matches" },
-        { icon: "🔥", name: "On Fire", desc: "10 win streak" },
-        { icon: "⚡", name: "Speed Demon", desc: "Win in under 1 minute" },
-        { icon: "🎯", name: "Perfectionist", desc: "100% accuracy game" },
-    ],
-};
-
-const myProfile = {
-    username: "You",
-    avatar: "👤",
-    level: 15,
-    title: "Rising Star",
-    joinDate: "January 2025",
-    totalWins: 85,
-    totalLosses: 42,
-    winStreak: 3,
-    elo: 1450,
-    gamesPlayed: 127,
-    favoriteGame: "Tetris",
-    recentMatches: [
-        { game: "Tetris", opponent: "BlockMaster", result: "loss", eloChange: -12, time: "1 hour ago" },
-        { game: "Chess", opponent: "NoviceUser", result: "win", eloChange: +25, time: "Yesterday" },
-    ],
-    achievements: [
-        { icon: "🌱", name: "Newcomer", desc: "Play 100 games" },
-        { icon: "🚀", name: "Liftoff", desc: "Win 5 in a row" },
-    ],
-};
+import { userService } from "../services/api";
+import { getAvatarByName } from "../constants/avatars";
 
 const Profile = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const [isFriend, setIsFriend] = useState(false);
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    const profile = !id ? myProfile : otherProfile;
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const data = id ? await userService.getUserById(id) : await userService.getProfile();
 
-    const winRate = ((profile.totalWins / profile.gamesPlayed) * 100).toFixed(1);
+                setProfile({
+                    ...data,
+                    joinDate: new Date(data.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                    // Mock data for visual completeness until GameService is ready
+                    recentMatches: [],
+                    achievements: [
+                        { icon: "🏆", name: "Gladiator", desc: "Joined the Arena" },
+                        { icon: "🌱", name: "New Blood", desc: "First Login" }
+                    ]
+                });
+            } catch (error) {
+                console.error("Error fetching profile:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+        );
+    }
+
+    if (!profile) return <div className="text-center mt-20">User not found</div>;
+
+    const winRate = profile.gamesPlayed > 0
+        ? ((profile.wins / profile.gamesPlayed) * 100).toFixed(1)
+        : "0.0";
+
+    const avatarData = getAvatarByName(profile.avatar);
+    const AvatarIcon = avatarData.icon;
 
     return (
         <motion.div
@@ -104,8 +97,8 @@ const Profile = () => {
                         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                             {/* Avatar */}
                             <div className="relative">
-                                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/40 to-primary/10 flex items-center justify-center text-6xl border-4 border-primary/50 shadow-lg shadow-primary/20">
-                                    {profile.avatar}
+                                <div className={`w-32 h-32 rounded-full bg-gradient-to-br ${avatarData.color} flex items-center justify-center border-4 border-primary/50 shadow-lg shadow-primary/20`}>
+                                    <AvatarIcon className="w-14 h-14 text-white" />
                                 </div>
                                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary rounded-full text-xs font-bold text-primary-foreground">
                                     LVL {profile.level}
@@ -170,9 +163,9 @@ const Profile = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         {[
-                            { icon: Trophy, label: "Total Wins", value: profile.totalWins, color: "text-green-400" },
+                            { icon: Trophy, label: "Total Wins", value: profile.wins, color: "text-green-400" },
                             { icon: Target, label: "Win Rate", value: `${winRate}%`, color: "text-blue-400" },
-                            { icon: Flame, label: "Win Streak", value: profile.winStreak, color: "text-orange-400" },
+                            { icon: Flame, label: "Win Streak", value: 0, color: "text-orange-400" }, // Mock 0 for now
                             { icon: Clock, label: "Games Played", value: profile.gamesPlayed, color: "text-purple-400" },
                         ].map((stat, index) => (
                             <motion.div
