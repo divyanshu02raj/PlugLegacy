@@ -169,7 +169,7 @@ const Profile = () => {
                                         {profile.title}
                                     </span>
                                 </div>
-                                <p className="text-muted-foreground mb-4">Playing since {profile.joinDate}</p>
+                                <p className="text-muted-foreground mb-4">Playing since {new Date(profile.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
 
                                 {/* Action Buttons */}
                                 <div className="flex flex-wrap justify-center md:justify-start gap-3">
