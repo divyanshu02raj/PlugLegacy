@@ -60,6 +60,9 @@ const Profile = () => {
         };
 
         fetchProfile();
+
+        window.addEventListener('friend-update', fetchProfile);
+        return () => window.removeEventListener('friend-update', fetchProfile);
     }, [id]);
 
     const handleFriendAction = async () => {

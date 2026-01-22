@@ -31,6 +31,13 @@ const NotificationsDropdown = () => {
         if (isOpen) {
             fetchFriendRequests();
         }
+
+        const handleUpdate = () => {
+            fetchFriendRequests();
+        };
+
+        window.addEventListener('friend-update', handleUpdate);
+        return () => window.removeEventListener('friend-update', handleUpdate);
     }, [isOpen]);
 
     const fetchFriendRequests = async () => {

@@ -124,6 +124,18 @@ const getFriendRequests = async (req, res) => {
     }
 };
 
+// @desc    Get sent friend requests
+// @route   GET /api/friends/sent-requests
+// @access  Private
+const getSentFriendRequests = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate('sentFriendRequests', 'username avatar elo');
+        res.json(user.sentFriendRequests);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Remove a friend
 // @route   POST /api/friends/remove/:id
 // @access  Private
@@ -158,5 +170,6 @@ module.exports = {
     rejectFriendRequest,
     getFriends,
     getFriendRequests,
+    getSentFriendRequests,
     removeFriend
 };

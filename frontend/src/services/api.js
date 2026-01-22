@@ -68,14 +68,17 @@ export const userService = {
 export const friendService = {
     sendRequest: async (userId) => {
         const response = await api.post(`/friends/request/${userId}`);
+        window.dispatchEvent(new Event('friend-update'));
         return response.data;
     },
     acceptRequest: async (requesterId) => {
         const response = await api.post(`/friends/accept/${requesterId}`);
+        window.dispatchEvent(new Event('friend-update'));
         return response.data;
     },
     rejectRequest: async (requesterId) => {
         const response = await api.post(`/friends/reject/${requesterId}`);
+        window.dispatchEvent(new Event('friend-update'));
         return response.data;
     },
     getFriends: async () => {
@@ -86,8 +89,13 @@ export const friendService = {
         const response = await api.get('/friends/requests');
         return response.data;
     },
+    getSentRequests: async () => {
+        const response = await api.get('/friends/sent-requests');
+        return response.data;
+    },
     removeFriend: async (friendId) => {
         const response = await api.post(`/friends/remove/${friendId}`);
+        window.dispatchEvent(new Event('friend-update'));
         return response.data;
     }
 };
