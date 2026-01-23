@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Settings, User, Loader2 } from "lucide-react";
+import { Search, Settings, User, Loader2, LogOut } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -13,6 +13,7 @@ const LibraryNavbar = () => {
     const [allUsers, setAllUsers] = useState([]);
     const [searchResults, setSearchResults] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const navigate = useNavigate();
     const searchRef = useRef(null);
 
@@ -71,6 +72,12 @@ const LibraryNavbar = () => {
         navigate(`/profile/${userId}`);
         setSearchValue("");
         setSearchFocused(false);
+    };
+
+    const handleLogout = () => {
+        authService.logout();
+        setCurrentUser(null);
+        navigate("/login");
     };
 
     const userAvatarData = currentUser ? getAvatarByName(currentUser.avatar) : null;
@@ -194,20 +201,54 @@ const LibraryNavbar = () => {
                             <Settings className="w-5 h-5 text-muted-foreground" />
                         </motion.button>
 
-                        {/* Profile */}
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate("/profile")}
-                            className="flex items-center gap-3 px-4 py-2 rounded-xl glass-card-hover"
+                        {/* Profile Dropdown */}
+                        <div
+                            className="relative z-50"
+                            onMouseEnter={() => setIsProfileOpen(true)}
+                            onMouseLeave={() => setIsProfileOpen(false)}
                         >
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userAvatarData ? `bg-gradient-to-br ${userAvatarData.color}` : "bg-primary/20 border border-primary/30"}`}>
-                                <UserIcon className={`w-4 h-4 ${userAvatarData ? "text-white" : "text-primary"}`} />
-                            </div>
-                            <span className="text-sm font-medium text-foreground hidden sm:block">
-                                {currentUser ? currentUser.username : "Profile"}
-                            </span>
-                        </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate("/profile")}
+                                className="flex items-center gap-3 px-4 py-2 rounded-xl glass-card-hover"
+                            >
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userAvatarData ? `bg-gradient-to-br ${userAvatarData.color}` : "bg-primary/20 border border-primary/30"}`}>
+                                    <UserIcon className={`w-4 h-4 ${userAvatarData ? "text-white" : "text-primary"}`} />
+                                </div>
+                                <span className="text-sm font-medium text-foreground hidden sm:block">
+                                    {currentUser ? currentUser.username : "Profile"}
+                                </span>
+                            </motion.button>
+
+                            <AnimatePresence>
+                                {isProfileOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        className="absolute right-0 top-full mt-2 w-48 glass-card rounded-xl overflow-hidden shadow-xl border border-glass-border"
+                                    >
+                                        <div className="p-1">
+                                            <button
+                                                onClick={() => navigate("/profile")}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-lg transition-colors text-sm font-medium text-left"
+                                            >
+                                                <User className="w-4 h-4 text-primary" />
+                                                Profile
+                                            </button>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-lg transition-colors text-sm font-medium text-left text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </div>
             </div>
