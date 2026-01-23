@@ -1,11 +1,16 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Settings, User, Loader2, LogOut } from "lucide-react";
+import { Search, Settings, User, Loader2, LogOut, Gamepad2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import NotificationsDropdown from "@/components/NotificationsDropdown";
 import { userService, authService } from "../../services/api";
 import { getAvatarByName } from "../../constants/avatars";
+
+const GAMES = [
+    { id: 'chess', name: 'Chess', type: 'game', route: '/play/chess', color: 'from-orange-500 to-amber-500' },
+    { id: 'sudoku', name: 'Sudoku', type: 'game', route: '/play/sudoku', color: 'from-blue-500 to-cyan-500' }
+];
 
 const LibraryNavbar = () => {
     const [searchFocused, setSearchFocused] = useState(false);
@@ -51,9 +56,19 @@ const LibraryNavbar = () => {
         }
 
         const query = searchValue.toLowerCase();
-        const results = allUsers.filter(user =>
+
+        // Filter Users
+        const userResults = allUsers.filter(user =>
             user.username.toLowerCase().includes(query)
-        ).slice(0, 5);
+        ).map(user => ({ ...user, type: 'user' }));
+
+        // Filter Games
+        const gameResults = GAMES.filter(game =>
+            game.name.toLowerCase().includes(query)
+        );
+
+        // Combine and limit
+        const results = [...gameResults, ...userResults].slice(0, 5);
 
         setSearchResults(results);
     }, [searchValue, allUsers]);
@@ -68,8 +83,12 @@ const LibraryNavbar = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleUserClick = (userId) => {
-        navigate(`/profile/${userId}`);
+    const handleResultClick = (result) => {
+        if (result.type === 'game') {
+            navigate(result.route);
+        } else {
+            navigate(`/profile/${result._id}`);
+        }
         setSearchValue("");
         setSearchFocused(false);
     };
@@ -129,7 +148,7 @@ const LibraryNavbar = () => {
                             <Search className={`w-5 h-5 transition-colors ${searchFocused ? "text-primary" : "text-muted-foreground"}`} />
                             <input
                                 type="text"
-                                placeholder="Search players..."
+                                placeholder="Search players & games..."
                                 value={searchValue}
                                 onChange={(e) => setSearchValue(e.target.value)}
                                 onFocus={() => setSearchFocused(true)}
@@ -157,28 +176,47 @@ const LibraryNavbar = () => {
                                     className="absolute top-full left-0 right-0 mt-2 bg-obsidian border border-glass-border rounded-xl shadow-2xl overflow-hidden py-2"
                                 >
                                     {searchResults.length > 0 ? (
-                                        searchResults.map((user) => {
-                                            const avatarData = getAvatarByName(user.avatar);
+                                        searchResults.map((result) => {
+                                            if (result.type === 'game') {
+                                                return (
+                                                    <div
+                                                        key={result.id}
+                                                        onClick={() => handleResultClick(result)}
+                                                        className="px-4 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-colors"
+                                                    >
+                                                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${result.color} flex items-center justify-center`}>
+                                                            <Gamepad2 className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-sm text-foreground">{result.name}</p>
+                                                            <p className="text-xs text-muted-foreground">Game</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            // User result
+                                            const avatarData = getAvatarByName(result.avatar);
                                             const AvatarIcon = avatarData.icon;
                                             return (
                                                 <div
-                                                    key={user._id}
-                                                    onClick={() => handleUserClick(user._id)}
+                                                    key={result._id}
+                                                    onClick={() => handleResultClick(result)}
                                                     className="px-4 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-colors"
                                                 >
                                                     <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarData.color} flex items-center justify-center`}>
                                                         <AvatarIcon className="w-4 h-4 text-white" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium text-sm text-foreground">{user.username}</p>
-                                                        <p className="text-xs text-muted-foreground">Level {Math.floor(user.wins / 10) + 1}</p>
+                                                        <p className="font-medium text-sm text-foreground">{result.username}</p>
+                                                        <p className="text-xs text-muted-foreground">Level {Math.floor(result.wins / 10) + 1}</p>
                                                     </div>
                                                 </div>
                                             );
                                         })
                                     ) : (
                                         <div className="px-4 py-3 text-center text-muted-foreground text-sm">
-                                            No players found
+                                            No results found
                                         </div>
                                     )}
                                 </motion.div>
