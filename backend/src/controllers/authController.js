@@ -39,7 +39,10 @@ const signup = async (req, res) => {
                 _id: user.id,
                 username: user.username,
                 email: user.email,
+                avatar: user.avatar,
                 elo: user.elo,
+                wins: user.wins,
+                losses: user.losses,
                 token: generateToken(user._id)
             });
         } else {
@@ -65,7 +68,10 @@ const login = async (req, res) => {
                 _id: user.id,
                 username: user.username,
                 email: user.email,
+                avatar: user.avatar,
                 elo: user.elo,
+                wins: user.wins,
+                losses: user.losses,
                 token: generateToken(user._id)
             });
         } else {
