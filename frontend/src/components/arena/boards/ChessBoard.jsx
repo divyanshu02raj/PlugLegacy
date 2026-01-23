@@ -1,10 +1,45 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, Component } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ArrowLeft } from "lucide-react";
+import { Chess } from "chess.js";
+import ChessModeSelection from "./chess/ChessModeSelection";
 
-// --- Premium SVG Chess Pieces ---
-// Concept: "Silver vs Amber" - Metallic gradients for a high-end feel.
+// Error Boundary Component
+class ErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
 
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("ChessBoard Error:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-6 text-center">
+                    <h2 className="text-xl font-bold text-red-500 mb-2">Something went wrong</h2>
+                    <p className="text-muted-foreground mb-4">{this.state.error?.message}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                    >
+                        Reload Page
+                    </button>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+// --- Premium SVG Chess Pieces (Unchanged) ---
 const ChessPiece = ({ type, color, isActive }) => {
     // Gradients definitions are reused for consistency
     const defs = (
@@ -30,11 +65,11 @@ const ChessPiece = ({ type, color, isActive }) => {
         </defs>
     );
 
-    const fillUrl = color === "white" ? "url(#grad-white)" : "url(#grad-black)";
-    const strokeColor = color === "white" ? "#475569" : "#451a03"; // Slate-600 vs Amber-950
+    const fillUrl = color === "w" ? "url(#grad-white)" : "url(#grad-black)";
+    const strokeColor = color === "w" ? "#475569" : "#451a03"; // Slate-600 vs Amber-950
 
     const pieces = {
-        K: (
+        k: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <g fill={fillUrl} stroke={strokeColor} strokeWidth="1.2" filter="url(#piece-shadow)">
@@ -45,7 +80,7 @@ const ChessPiece = ({ type, color, isActive }) => {
                 </g>
             </svg>
         ),
-        Q: (
+        q: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <g fill={fillUrl} stroke={strokeColor} strokeWidth="1.2" filter="url(#piece-shadow)">
@@ -61,7 +96,7 @@ const ChessPiece = ({ type, color, isActive }) => {
                 </g>
             </svg>
         ),
-        R: (
+        r: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <g fill={fillUrl} stroke={strokeColor} strokeWidth="1.2" filter="url(#piece-shadow)">
@@ -72,7 +107,7 @@ const ChessPiece = ({ type, color, isActive }) => {
                 </g>
             </svg>
         ),
-        B: (
+        b: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <g fill={fillUrl} stroke={strokeColor} strokeWidth="1.2" filter="url(#piece-shadow)">
@@ -85,7 +120,7 @@ const ChessPiece = ({ type, color, isActive }) => {
                 </g>
             </svg>
         ),
-        N: (
+        n: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <g fill={fillUrl} stroke={strokeColor} strokeWidth="1.2" filter="url(#piece-shadow)">
@@ -94,7 +129,7 @@ const ChessPiece = ({ type, color, isActive }) => {
                 </g>
             </svg>
         ),
-        P: (
+        p: (
             <svg viewBox="0 0 45 45" className="w-full h-full drop-shadow-2xl">
                 {defs}
                 <path d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"
@@ -111,159 +146,194 @@ const ChessPiece = ({ type, color, isActive }) => {
     return (
         <motion.div
             className="w-full h-full p-1.5"
-        // Breathing animation for active turn pieces? Maybe too much, let's keep it clean for now.
         >
             {pieces[type]}
         </motion.div>
     );
 };
 
-// --- Game Logic (Unchanged but cleaned up) ---
-const initialBoard = () => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
-    const backRow = ["R", "N", "B", "Q", "K", "B", "N", "R"];
-
-    board[0] = backRow.map(type => ({ type, color: "black" }));
-    board[1] = Array(8).fill(null).map(() => ({ type: "P", color: "black" }));
-
-    board[7] = backRow.map(type => ({ type, color: "white" }));
-    board[6] = Array(8).fill(null).map(() => ({ type: "P", color: "white" }));
-
-    return board;
-};
-
-const getValidMoves = (board, row, col) => {
-    const piece = board[row][col];
-    if (!piece) return [];
-
-    const moves = [];
-    const { type, color } = piece;
-    const direction = color === "white" ? -1 : 1;
-
-    // Helper helper
-    const addMove = (r, c) => moves.push([r, c]);
-    const isValid = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
-    const isEmpty = (r, c) => !board[r][c];
-    const isEnemy = (r, c) => board[r][c] && board[r][c].color !== color;
-
-    if (type === "P") {
-        if (isValid(row + direction, col) && isEmpty(row + direction, col)) {
-            addMove(row + direction, col);
-            const startRow = color === "white" ? 6 : 1;
-            if (row === startRow && isEmpty(row + 2 * direction, col)) {
-                addMove(row + 2 * direction, col);
-            }
-        }
-        [-1, 1].forEach(dc => {
-            if (isValid(row + direction, col + dc) && isEnemy(row + direction, col + dc)) {
-                addMove(row + direction, col + dc);
-            }
-        });
-    } else {
-        const directions = {
-            R: [[0, 1], [0, -1], [1, 0], [-1, 0]],
-            B: [[1, 1], [1, -1], [-1, 1], [-1, -1]],
-            Q: [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
-            N: [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
-            K: [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]],
-        };
-
-        const isSliding = ["R", "B", "Q"].includes(type);
-
-        directions[type].forEach(([dr, dc]) => {
-            let r = row + dr;
-            let c = col + dc;
-
-            if (isSliding) {
-                while (isValid(r, c)) {
-                    if (isEmpty(r, c)) {
-                        addMove(r, c);
-                    } else {
-                        if (isEnemy(r, c)) addMove(r, c);
-                        break;
-                    }
-                    r += dr;
-                    c += dc;
-                }
-            } else {
-                if (isValid(r, c) && (isEmpty(r, c) || isEnemy(r, c))) {
-                    addMove(r, c);
-                }
-            }
-        });
-    }
-    return moves;
-};
-
 // --- Main Component ---
 const ChessBoard = () => {
-    const [board, setBoard] = useState(initialBoard());
+    // Game Modes: null (selection), 'computer', 'stranger', 'friend'
+    const [gameMode, setGameMode] = useState(null);
+    const [game, setGame] = useState(() => {
+        try {
+            return new Chess();
+        } catch (e) {
+            console.error("Failed to initialize chess.js", e);
+            return null;
+        }
+    });
+    const [board, setBoard] = useState(game ? game.board() : []);
     const [selected, setSelected] = useState(null);
-    const [isWhiteTurn, setIsWhiteTurn] = useState(true);
     const [lastMove, setLastMove] = useState(null);
-    const [capturedPieces, setCapturedPieces] = useState({ white: [], black: [] });
+    const [capturedPieces, setCapturedPieces] = useState({ w: [], b: [] });
+    // Force re-render on game updates
+    const [fen, setFen] = useState(game ? game.fen() : "");
+
+    const [engine, setEngine] = useState(null);
+
+    // Initialize Stockfish
+    useEffect(() => {
+        if (gameMode === 'computer') {
+            try {
+                const stockfish = new Worker("/stockfish.js");
+                setEngine(stockfish);
+
+                stockfish.postMessage("uci");
+                stockfish.postMessage("isready");
+
+                // Listener
+                stockfish.onmessage = (event) => {
+                    const line = event.data;
+                    if (line.startsWith("bestmove")) {
+                        const move = line.split(" ")[1];
+                        if (move) {
+                            const from = move.substring(0, 2);
+                            const to = move.substring(2, 4);
+                            const promotion = move.length > 4 ? move.substring(4, 5) : "q"; // Default promotion to queen for simplicity if engine wants it
+
+                            // Apply move safely
+                            setGame(g => {
+                                const newGame = new Chess(g.fen());
+                                try {
+                                    newGame.move({ from, to, promotion });
+                                    setFen(newGame.fen());
+                                    setBoard(newGame.board());
+
+                                    // Highlight move
+                                    const fromRow = 8 - parseInt(from[1]);
+                                    const fromCol = from.charCodeAt(0) - 97;
+                                    const toRow = 8 - parseInt(to[1]);
+                                    const toCol = to.charCodeAt(0) - 97;
+                                    setLastMove({ from: [fromRow, fromCol], to: [toRow, toCol] });
+
+                                    // Capture sound could trigger here
+                                } catch (e) {
+                                    console.error("Invalid engine move", move, e);
+                                }
+                                return newGame;
+                            });
+                        }
+                    }
+                };
+
+                return () => stockfish.terminate();
+            } catch (e) {
+                console.error("Stockfish init failed", e);
+            }
+        }
+    }, [gameMode]);
+
+    // Trigger AI move
+    useEffect(() => {
+        if (gameMode === 'computer' && game.turn() === 'b' && !game.isGameOver() && engine) {
+            // Small delay for realism
+            const timer = setTimeout(() => {
+                engine.postMessage(`position fen ${game.fen()}`);
+                engine.postMessage("go depth 15"); // Depth 15 is decent ~1500-1800 ELO depending on time
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [fen, gameMode, engine]);
+
+
 
     const validMoves = useMemo(() => {
         if (!selected) return [];
-        return getValidMoves(board, selected.row, selected.col);
-    }, [selected, board]);
+        const moves = game.moves({
+            square: String.fromCharCode(97 + selected.col) + (8 - selected.row),
+            verbose: true
+        });
+        return moves.map(m => {
+            const row = 8 - parseInt(m.to[1]);
+            const col = m.to.charCodeAt(0) - 97;
+            return [row, col];
+        });
+    }, [selected, fen]);
 
     const handleSquareClick = (row, col) => {
+        if (!gameMode) return;
+
+        // Prevent moving if it's computer's turn in vs computer mode
+        if (gameMode === 'computer' && game.turn() === 'b') return;
+        if (game.isGameOver()) return;
+
         const piece = board[row][col];
         const isSelectedSquare = selected?.row === row && selected?.col === col;
 
+        // If clicking same square, deselect
+        if (isSelectedSquare) {
+            setSelected(null);
+            return;
+        }
+
+        // Selecting a piece
+        if (piece && piece.color === game.turn()) {
+            setSelected({ row, col });
+            return;
+        }
+
+        // Attempting to move
         if (selected) {
-            if (isSelectedSquare) {
-                setSelected(null);
-                return;
-            }
+            const fromSquare = String.fromCharCode(97 + selected.col) + (8 - selected.row);
+            const toSquare = String.fromCharCode(97 + col) + (8 - row);
 
-            // Clicked own piece -> Switch selection
-            if (piece && piece.color === board[selected.row][selected.col].color) {
-                setSelected({ row, col });
-                return;
-            }
+            try {
+                const move = game.move({
+                    from: fromSquare,
+                    to: toSquare,
+                    promotion: 'q' // Always promote to queen for simplicity for now
+                });
 
-            // Move logic
-            const isValidMove = validMoves.some(([r, c]) => r === row && c === col);
-            if (isValidMove) {
-                const newBoard = board.map(r => r.map(c => c ? { ...c } : null));
-                const selectedPiece = newBoard[selected.row][selected.col];
+                if (move) {
+                    setBoard(game.board());
+                    setFen(game.fen());
+                    setLastMove({ from: [selected.row, selected.col], to: [row, col] });
+                    setSelected(null);
 
-                // Capture
-                if (piece) {
-                    setCapturedPieces(prev => ({
-                        ...prev,
-                        [piece.color]: [...prev[piece.color], piece],
-                    }));
+                    // Update captured pieces
+                    if (move.captured) {
+                        setCapturedPieces(prev => ({
+                            ...prev,
+                            [move.color === 'w' ? 'b' : 'w']: [...prev[move.color === 'w' ? 'b' : 'w'], { type: move.captured, color: move.color === 'w' ? 'b' : 'w' }]
+                        }));
+                    }
                 }
-
-                newBoard[row][col] = selectedPiece;
-                newBoard[selected.row][selected.col] = null;
-
-                setBoard(newBoard);
-                setLastMove({ from: [selected.row, selected.col], to: [row, col] });
-                setSelected(null);
-                setIsWhiteTurn(!isWhiteTurn);
-            } else {
-                // Invalid move click -> Deselect
-                setSelected(null);
-            }
-        } else {
-            // Select piece logic
-            if (piece && piece.color === (isWhiteTurn ? "white" : "black")) {
-                setSelected({ row, col });
+            } catch (e) {
+                // Invalid move
+                if (piece && piece.color === game.turn()) {
+                    // Clicked another own piece instead
+                    setSelected({ row, col });
+                } else {
+                    setSelected(null);
+                }
             }
         }
     };
 
     const resetGame = () => {
-        setBoard(initialBoard());
+        const newGame = new Chess();
+        setGame(newGame);
+        setBoard(newGame.board());
+        setFen(newGame.fen());
         setSelected(null);
-        setIsWhiteTurn(true);
         setLastMove(null);
-        setCapturedPieces({ white: [], black: [] });
+        setCapturedPieces({ w: [], b: [] });
     };
+
+    const handleModeSelect = (mode) => {
+        setGameMode(mode);
+        resetGame();
+    };
+
+    if (!game) {
+        return <div className="text-red-500 text-center p-4">Error loading chess engine. Please refresh.</div>;
+    }
+
+    if (!gameMode) {
+        return <ChessModeSelection onSelectMode={handleModeSelect} />;
+    }
 
     return (
         <motion.div
@@ -272,12 +342,22 @@ const ChessBoard = () => {
             transition={{ duration: 0.5 }}
             className="w-full max-w-[420px] mx-auto flex flex-col items-center"
         >
+            {/* Back to Selection */}
+            <div className="w-full text-left mb-2">
+                <button
+                    onClick={() => setGameMode(null)}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    <ArrowLeft className="w-3 h-3" /> Back to Modes
+                </button>
+            </div>
+
             {/* Graveyard (Opponent - White Captured) */}
             <div className="w-full mb-2 flex justify-between items-end px-2">
                 <div className="flex-1">
                     <div className="flex flex-wrap gap-1 min-h-[28px] p-1.5 rounded-xl bg-black/20 border border-white/5 backdrop-blur-sm">
-                        {capturedPieces.white.length === 0 && <span className="text-xs text-white/20 italic p-1">Captured white pieces</span>}
-                        {capturedPieces.white.map((p, i) => (
+                        {capturedPieces.w.length === 0 && <span className="text-xs text-white/20 italic p-1">Captured white pieces</span>}
+                        {capturedPieces.w.map((p, i) => (
                             <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-6 h-6">
                                 <ChessPiece type={p.type} color={p.color} />
                             </motion.div>
@@ -288,7 +368,7 @@ const ChessBoard = () => {
                 {/* Status Badge */}
                 <div className={`
                     mx-4 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide
-                    ${!isWhiteTurn ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : "bg-white/5 text-white/40"}
+                    ${game.turn() === 'b' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]" : "bg-white/5 text-white/40"}
                 `}>
                     BLACK TURN
                 </div>
@@ -316,6 +396,7 @@ const ChessBoard = () => {
                                 const isLastMoveFrom = lastMove?.from[0] === rowIdx && lastMove?.from[1] === colIdx;
                                 const isLastMoveTo = lastMove?.to[0] === rowIdx && lastMove?.to[1] === colIdx;
                                 const isCapture = isValid && piece;
+                                const isKingCheck = piece?.type === 'k' && piece?.color === game.turn() && game.inCheck();
 
                                 return (
                                     <div
@@ -330,6 +411,7 @@ const ChessBoard = () => {
                                             }
                                             ${isSelected ? "bg-cyan-500/20 !shadow-[inset_0_0_15px_rgba(6,182,212,0.4)]" : ""}
                                             ${(isLastMoveFrom || isLastMoveTo) ? "bg-amber-500/10" : ""}
+                                            ${isKingCheck ? "bg-red-500/20 shadow-[inset_0_0_20px_rgba(239,68,68,0.4)]" : ""}
                                         `}
                                     >
                                         {/* Corner markings for board aesthetics (optional) */}
@@ -346,14 +428,14 @@ const ChessBoard = () => {
                                         )}
 
                                         {/* Piece Render */}
-                                        <AnimatePresence mode="popLayout">
+                                        <AnimatePresence>
                                             {piece && (
                                                 <motion.div
-                                                    layoutId={`piece-${rowIdx}-${colIdx}`} // Helps animations if tracked properly, simplified here
+                                                    layoutId={`piece-${piece.type}-${piece.color}-${rowIdx}-${colIdx}`} // Unique ID for layout anim
                                                     initial={{ scale: 0.8, opacity: 0 }}
                                                     animate={{ scale: 1, opacity: 1 }}
-                                                    exit={{ scale: 0.8, opacity: 0 }}
-                                                    transition={{ type: "spring", bounce: 0.3 }}
+                                                    exit={{ opacity: 0, transition: { duration: 0 } }} // Instant exit to prevent ghosting
+                                                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
                                                     className="w-[90%] h-[90%] z-10"
                                                 >
                                                     <ChessPiece type={piece.type} color={piece.color} />
@@ -377,8 +459,8 @@ const ChessBoard = () => {
             <div className="w-full mt-2 flex justify-between items-start px-2">
                 <div className="flex-1">
                     <div className="flex flex-wrap gap-1 min-h-[32px] p-2 rounded-xl bg-black/20 border border-white/5 backdrop-blur-sm">
-                        {capturedPieces.black.length === 0 && <span className="text-xs text-white/20 italic p-1">Captured black pieces</span>}
-                        {capturedPieces.black.map((p, i) => (
+                        {capturedPieces.b.length === 0 && <span className="text-xs text-white/20 italic p-1">Captured black pieces</span>}
+                        {capturedPieces.b.map((p, i) => (
                             <motion.div key={i} initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-6 h-6">
                                 <ChessPiece type={p.type} color={p.color} />
                             </motion.div>
@@ -389,11 +471,25 @@ const ChessBoard = () => {
                 {/* Status Badge */}
                 <div className={`
                     mx-4 px-4 py-1.5 rounded-full text-sm font-bold tracking-wide
-                    ${isWhiteTurn ? "bg-white/20 text-white border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.2)]" : "bg-white/5 text-white/40"}
+                    ${game.turn() === 'w' ? "bg-white/20 text-white border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.2)]" : "bg-white/5 text-white/40"}
                 `}>
                     WHITE TURN
                 </div>
             </div>
+
+            {/* Game Over Message */}
+            {game.isGameOver() && (
+                <div className="mt-4 p-4 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md text-center animate-in fade-in zoom-in">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                        {game.isCheckmate() ? "Checkmate!" : "Draw"}
+                    </h3>
+                    <p className="text-sm text-white/70">
+                        {game.isCheckmate()
+                            ? `${game.turn() === 'w' ? 'Black' : 'White'} Wins!`
+                            : "Game ended in a draw"}
+                    </p>
+                </div>
+            )}
 
             {/* Controls */}
             <div className="mt-4">
@@ -411,4 +507,11 @@ const ChessBoard = () => {
     );
 };
 
-export default ChessBoard;
+// Wrap with ErrorBoundary for safety
+const SafeChessBoard = () => (
+    <ErrorBoundary>
+        <ChessBoard />
+    </ErrorBoundary>
+);
+
+export default SafeChessBoard;
