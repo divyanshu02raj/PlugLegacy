@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Users, ChevronRight, ChevronLeft, ChevronDown, UserPlus, UserMinus, Swords, MessageCircle, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { friendService } from "../services/api";
+import { useSocket } from "../context/SocketContext";
 import { getAvatarByName } from "../constants/avatars";
 
 const FriendsListSidebar = () => {
@@ -42,23 +43,57 @@ const FriendsListSidebar = () => {
         }
     };
 
+    const { socket } = useSocket();
+    const [onlineFriendIds, setOnlineFriendIds] = useState(new Set());
+
     useEffect(() => {
-        if (isOpen) {
-            fetchData();
-        }
+        fetchData();
 
         const handleUpdate = () => {
-            if (isOpen) fetchData();
+            fetchData();
         };
 
         window.addEventListener('friend-update', handleUpdate);
         return () => window.removeEventListener('friend-update', handleUpdate);
-    }, [isOpen]);
+    }, []);
 
-    // Filtering & Categorization
-    // Mocking online status for now as random since backend doesn't support it yet
-    const onlineFriends = friends.filter(f => false); // All offline for now
-    const offlineFriends = friends;
+    // Handle Online Status
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleOnlineList = (ids) => {
+            setOnlineFriendIds(new Set(ids));
+        };
+
+        const handleFriendOnline = ({ userId }) => {
+            setOnlineFriendIds(prev => new Set(prev).add(userId));
+        };
+
+        const handleFriendOffline = ({ userId }) => {
+            setOnlineFriendIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(userId);
+                return newSet;
+            });
+        };
+
+        socket.on('online_friends_list', handleOnlineList);
+        socket.on('friend_online', handleFriendOnline);
+        socket.on('friend_offline', handleFriendOffline);
+
+        // Fetch initial status immediately
+        socket.emit('request_online_friends');
+
+        return () => {
+            socket.off('online_friends_list', handleOnlineList);
+            socket.off('friend_online', handleFriendOnline);
+            socket.off('friend_offline', handleFriendOffline);
+        };
+    }, [socket]);
+
+    // Filtering
+    const onlineFriends = friends.filter(f => onlineFriendIds.has(f._id));
+    const offlineFriends = friends.filter(f => !onlineFriendIds.has(f._id));
 
     const filterList = (list) => list.filter(item =>
         item.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -79,7 +114,7 @@ const FriendsListSidebar = () => {
                 className="fixed right-0 top-1/2 -translate-y-1/2 z-40 p-3 glass-card rounded-l-xl border border-r-0 border-glass-border hidden lg:flex items-center gap-2"
             >
                 <Users className="w-5 h-5" />
-                <span className="text-xs font-medium">{friends.length}</span>
+                <span className="text-xs font-medium">{onlineFriends.length}</span>
                 {isOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </motion.button>
 

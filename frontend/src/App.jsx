@@ -17,6 +17,8 @@ import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { SocketProvider } from "./context/SocketContext";
+import InviteListener from "./components/auth/InviteListener"; // Create this next
 
 const queryClient = new QueryClient();
 
@@ -24,31 +26,35 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark">
             <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <OnboardingTutorial />
-                <BrowserRouter>
-                    <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<Index />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/signup" element={<Signup />} />
+                <SocketProvider>
+                    <Toaster />
+                    <Sonner />
 
-                        {/* Protected Routes */}
-                        <Route element={<ProtectedRoute />}>
-                            <Route path="/profile-setup" element={<ProfileSetup />} />
-                            <Route path="/games" element={<GameLibrary />} />
-                            <Route path="/play/:gameId" element={<GameArena />} />
-                            <Route path="/leaderboard" element={<Leaderboard />} />
-                            <Route path="/profile" element={<Profile />} />
-                            <Route path="/profile/:id" element={<Profile />} />
-                            <Route path="/settings" element={<Settings />} />
-                        </Route>
+                    <OnboardingTutorial />
+                    <BrowserRouter>
+                        <InviteListener />
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route path="/" element={<Index />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/signup" element={<Signup />} />
 
-                        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                        <Route path="*" element={<NotFound />} />
-                    </Routes>
-                </BrowserRouter>
+                            {/* Protected Routes */}
+                            <Route element={<ProtectedRoute />}>
+                                <Route path="/profile-setup" element={<ProfileSetup />} />
+                                <Route path="/games" element={<GameLibrary />} />
+                                <Route path="/play/:gameId" element={<GameArena />} />
+                                <Route path="/leaderboard" element={<Leaderboard />} />
+                                <Route path="/profile" element={<Profile />} />
+                                <Route path="/profile/:id" element={<Profile />} />
+                                <Route path="/settings" element={<Settings />} />
+                            </Route>
+
+                            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                            <Route path="*" element={<NotFound />} />
+                        </Routes>
+                    </BrowserRouter>
+                </SocketProvider>
             </TooltipProvider>
         </ThemeProvider>
     </QueryClientProvider>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, ArrowLeft } from "lucide-react";
 import { Chess } from "chess.js";
 import ChessModeSelection from "./chess/ChessModeSelection";
+import ChessFriendLobby from "./chess/ChessFriendLobby";
 
 // Error Boundary Component
 class ErrorBoundary extends Component {
@@ -335,6 +336,10 @@ const ChessBoard = () => {
         return <ChessModeSelection onSelectMode={handleModeSelect} />;
     }
 
+    if (gameMode === 'friend' && !game?.roomId) { // If 'friend' selected but game not started (no roomId)
+        return <ChessFriendLobby onBack={() => setGameMode(null)} />;
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -388,8 +393,12 @@ const ChessBoard = () => {
                 <div className="ml-5 mb-4 border border-white/10 rounded-lg overflow-hidden">
                     <div className="grid grid-cols-8 bg-[#0f1014]">
                         {/* Dark Obsidian Base Background */}
-                        {board.map((row, rowIdx) =>
-                            row.map((piece, colIdx) => {
+                        {Array(8).fill(null).map((_, visualRow) => (
+                            Array(8).fill(null).map((_, visualCol) => {
+                                const rowIdx = isFlipped ? 7 - visualRow : visualRow;
+                                const colIdx = isFlipped ? 7 - visualCol : visualCol;
+                                const piece = board[rowIdx][colIdx];
+
                                 const isLight = (rowIdx + colIdx) % 2 === 0;
                                 const isSelected = selected?.row === rowIdx && selected?.col === colIdx;
                                 const isValid = validMoves.some(([r, c]) => r === rowIdx && c === colIdx);
@@ -450,7 +459,7 @@ const ChessBoard = () => {
                                     </div>
                                 );
                             })
-                        )}
+                        ))}
                     </div>
                 </div>
             </div>
