@@ -3,6 +3,7 @@ import LibraryNavbar from "@/components/library/LibraryNavbar";
 import FeaturedBanner from "@/components/library/FeaturedBanner";
 import GameRow from "@/components/library/GameRow";
 import FriendsListSidebar from "@/components/FriendsListSidebar";
+import GameInvitesSidebar from "@/components/GameInvitesSidebar";
 
 // All games data
 const allGames = {
@@ -123,6 +124,7 @@ const GameLibrary = () => {
 
             {/* Friends List Sidebar */}
             <FriendsListSidebar />
+            <GameInvitesSidebar />
         </motion.div>
     );
 };

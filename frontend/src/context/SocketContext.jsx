@@ -17,11 +17,24 @@ export const SocketProvider = ({ children }) => {
         const newSocket = io('http://localhost:5000'); // Check env var in prod
         setSocket(newSocket);
 
+        // Connection Handler (handles initial connect + reconnects)
+        const handleConnect = () => {
+            console.log("Socket connected/reconnected");
+            const currentUser = authService.getCurrentUser();
+            if (currentUser) {
+                console.log("Registering user:", currentUser._id);
+                newSocket.emit('register_user', currentUser._id);
+            }
+        };
+
+        newSocket.on('connect', handleConnect);
+
         // Auth Listener
         const checkAuth = () => {
             const currentUser = authService.getCurrentUser();
             setUser(currentUser);
-            if (currentUser && newSocket) {
+            // If socket is already connected but we just logged in
+            if (currentUser && newSocket.connected) {
                 newSocket.emit('register_user', currentUser._id);
             }
         };

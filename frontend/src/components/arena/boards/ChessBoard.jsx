@@ -2,10 +2,12 @@ import { useState, useMemo, useEffect, useCallback, Component } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, ArrowLeft } from "lucide-react";
 import { Chess } from "chess.js";
+import { useLocation } from "react-router-dom";
+import { useSocket } from "../../../context/SocketContext";
 import ChessModeSelection from "./chess/ChessModeSelection";
 import ChessFriendLobby from "./chess/ChessFriendLobby";
 
-// Error Boundary Component
+// Error Boundary Component (unchanged)
 class ErrorBoundary extends Component {
     constructor(props) {
         super(props);
@@ -40,7 +42,7 @@ class ErrorBoundary extends Component {
     }
 }
 
-// --- Premium SVG Chess Pieces (Unchanged) ---
+// --- Premium SVG Chess Pieces ---
 const ChessPiece = ({ type, color, isActive }) => {
     // Gradients definitions are reused for consistency
     const defs = (
@@ -155,8 +157,21 @@ const ChessPiece = ({ type, color, isActive }) => {
 
 // --- Main Component ---
 const ChessBoard = () => {
+    const location = useLocation();
+    const { socket } = useSocket();
+
     // Game Modes: null (selection), 'computer', 'stranger', 'friend'
-    const [gameMode, setGameMode] = useState(null);
+    const [gameMode, setGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
+    const [roomId, setRoomId] = useState(location.state?.roomId || null);
+    const [players, setPlayers] = useState(location.state?.players || {});
+
+    const isFlipped = useMemo(() => {
+        if (gameMode === 'friend' && socket?.id) {
+            return players[socket.id]?.color === 'b';
+        }
+        return false;
+    }, [gameMode, players, socket]);
+
     const [game, setGame] = useState(() => {
         try {
             return new Chess();
@@ -238,6 +253,35 @@ const ChessBoard = () => {
         }
     }, [fen, gameMode, engine]);
 
+    // Socket Listeners for Multiplayer
+    useEffect(() => {
+        if (!socket || !roomId) return;
+
+        console.log("Joined game room:", roomId);
+        socket.emit('join_game_room', roomId);
+
+        const handleOpponentMove = ({ move, fen }) => {
+            console.log("Opponent moved:", move);
+            setGame(g => {
+                const newGame = new Chess(fen); // Sync with trusted FEN or apply move?
+                // Using FEN is safer for state sync, but move animation needs 'from'/'to'.
+                // If we use FEN, we might lose last move highlight info unless sent.
+                // For now, let's just set from FEN.
+                setFen(fen);
+                setBoard(newGame.board());
+                setLastMove(null); // Or calculate from diff?
+                return newGame;
+            });
+            // Update turn indicator etc.
+        };
+
+        socket.on('opponent_move', handleOpponentMove);
+
+        return () => {
+            socket.off('opponent_move', handleOpponentMove);
+        };
+    }, [socket, roomId]);
+
 
 
     const validMoves = useMemo(() => {
@@ -300,6 +344,11 @@ const ChessBoard = () => {
                             [move.color === 'w' ? 'b' : 'w']: [...prev[move.color === 'w' ? 'b' : 'w'], { type: move.captured, color: move.color === 'w' ? 'b' : 'w' }]
                         }));
                     }
+
+                    // Emit move if multiplayer
+                    if (roomId && socket) {
+                        socket.emit('game_move', { roomId, move: move.san, fen: game.fen() });
+                    }
                 }
             } catch (e) {
                 // Invalid move
@@ -336,7 +385,7 @@ const ChessBoard = () => {
         return <ChessModeSelection onSelectMode={handleModeSelect} />;
     }
 
-    if (gameMode === 'friend' && !game?.roomId) { // If 'friend' selected but game not started (no roomId)
+    if (gameMode === 'friend' && !roomId) { // If 'friend' selected but game not started (no roomId)
         return <ChessFriendLobby onBack={() => setGameMode(null)} />;
     }
 
