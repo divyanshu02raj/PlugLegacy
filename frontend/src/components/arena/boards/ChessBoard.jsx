@@ -349,6 +349,9 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
         }
     }, [fen, gameMode, engine, gameOverState]);
 
+    // Draw Offer State
+    const [incomingDrawOffer, setIncomingDrawOffer] = useState(false);
+
     // Socket Listeners for Multiplayer
     useEffect(() => {
         if (!socket || !roomId) return;
@@ -379,16 +382,59 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
             onGameOver?.(result);
         };
 
+        const handleOpponentResigned = () => {
+            // If opponent resigned, I win.
+            const myColor = players[socket.id]?.color || 'w'; // Fallback
+            const winner = myColor === 'w' ? 'White' : 'Black';
+            const result = {
+                winner, // I am winner
+                reason: 'Resignation'
+            };
+            setGameOverState(result);
+            onGameOver?.(result);
+        };
+
+        const handleReceiveDrawOffer = () => {
+            setIncomingDrawOffer(true);
+        };
+
+        const handleGameDraw = ({ reason }) => {
+            const result = {
+                winner: 'Draw',
+                reason: reason || 'Agreement'
+            };
+            setGameOverState(result);
+            onGameOver?.(result);
+            setIncomingDrawOffer(false); // Close if open
+        };
+
+        const handleDrawRejected = () => {
+            alert("Opponent declined draw offer."); // Replacing with a simple alert or toast for now
+        };
+
         socket.on('opponent_move', handleOpponentMove);
-        socket.on('game_end', handleGameEnd); // Listen for server game end events
+        socket.on('game_end', handleGameEnd);
+        socket.on('opponent_resigned', handleOpponentResigned);
+        socket.on('receive_draw_offer', handleReceiveDrawOffer);
+        socket.on('game_draw', handleGameDraw);
+        socket.on('draw_offer_rejected', handleDrawRejected);
 
         return () => {
             socket.off('opponent_move', handleOpponentMove);
             socket.off('game_end', handleGameEnd);
+            socket.off('opponent_resigned', handleOpponentResigned);
+            socket.off('receive_draw_offer', handleReceiveDrawOffer);
+            socket.off('game_draw', handleGameDraw);
+            socket.off('draw_offer_rejected', handleDrawRejected);
         };
-    }, [socket, roomId, updateGameState, onGameOver]);
+    }, [socket, roomId, updateGameState, onGameOver, players]);
 
-
+    const respondToDraw = (accepted) => {
+        if (roomId && socket) {
+            socket.emit('respond_draw_offer', { roomId, accepted });
+        }
+        setIncomingDrawOffer(false);
+    };
 
     const validMoves = useMemo(() => {
         if (!selected || gameOverState) return []; // No moves if game over
@@ -637,6 +683,43 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                 </div>
             </div>
 
+            {/* Draw Offer Modal */}
+            <AnimatePresence>
+                {incomingDrawOffer && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#0f1014] rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl text-center"
+                        >
+                            <h3 className="text-xl font-bold text-white mb-2">Draw Offered</h3>
+                            <p className="text-white/60 mb-6 text-sm">Approving this will end the game with a draw (30 pts each).</p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => respondToDraw(false)}
+                                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+                                >
+                                    Decline
+                                </button>
+                                <button
+                                    onClick={() => respondToDraw(true)}
+                                    className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold transition-colors"
+                                >
+                                    Accept Draw
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Match Report Overlay */}
             {gameOverState && (
                 <motion.div
@@ -666,13 +749,13 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                             <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
                                 <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1 max-w-full truncate px-1">{whitePlayerName}</span>
                                 <span className="text-xl font-bold text-white">
-                                    {Object.values(capturedPieces.b).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'White' && (gameOverState.reason === 'Resignation' || gameOverState.reason === 'Checkmate') ? 60 : 0)}
+                                    {Object.values(capturedPieces.b).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'White' ? 60 : (gameOverState.winner === 'Draw' ? 30 : 0))}
                                 </span>
                             </div>
                             <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
                                 <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1 max-w-full truncate px-1">{blackPlayerName}</span>
                                 <span className="text-xl font-bold text-white">
-                                    {Object.values(capturedPieces.w).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'Black' && (gameOverState.reason === 'Resignation' || gameOverState.reason === 'Checkmate') ? 60 : 0)}
+                                    {Object.values(capturedPieces.w).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'Black' ? 60 : (gameOverState.winner === 'Draw' ? 30 : 0))}
                                 </span>
                             </div>
                         </div>

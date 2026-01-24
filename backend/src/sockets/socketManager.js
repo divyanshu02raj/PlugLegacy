@@ -180,6 +180,30 @@ module.exports = (io) => {
             socket.to(roomId).emit('opponent_move', { move, fen });
         });
 
+        // --- GAME ACTIONS (Resign/Draw) ---
+        socket.on('game_resign', ({ roomId }) => {
+            // Sender resigned. Notify everyone (opponent wins)
+            // But who is the sender? socket.id
+            // We can determine winner color or just say "Opponent Resigned"
+            // Let the clients figure out who won based on who resigned.
+            // Or we can emit "game_over" with specific details.
+            socket.to(roomId).emit('opponent_resigned', { resignedSocketId: socket.id });
+        });
+
+        socket.on('game_offer_draw', ({ roomId }) => {
+            socket.to(roomId).emit('receive_draw_offer', { fromSocketId: socket.id });
+        });
+
+        socket.on('respond_draw_offer', ({ roomId, accepted }) => {
+            if (accepted) {
+                // Draw accepted. End game.
+                io.to(roomId).emit('game_draw', { reason: 'Agreement' });
+            } else {
+                // Draw rejected. Notify sender.
+                socket.to(roomId).emit('draw_offer_rejected');
+            }
+        });
+
         // --- CHAT ---
         socket.on('game_chat_message', ({ roomId, message, username, avatar }) => {
             io.to(roomId).emit('game_chat_message', {
