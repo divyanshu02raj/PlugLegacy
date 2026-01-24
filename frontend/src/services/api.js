@@ -68,6 +68,24 @@ export const userService = {
     getAllUsers: async () => {
         const response = await api.get('/users');
         return response.data;
+    },
+    saveMatch: async (matchData) => {
+        const response = await api.post('/users/matches', matchData);
+        if (response.data) {
+            // Optimistically update local user stats
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            if (currentUser) {
+                if (matchData.result === 'win') {
+                    currentUser.wins = (currentUser.wins || 0) + 1;
+                    currentUser.elo = (currentUser.elo || 1000) + 10;
+                } else if (matchData.result === 'loss') {
+                    currentUser.losses = (currentUser.losses || 0) + 1;
+                    currentUser.elo = Math.max(0, (currentUser.elo || 1000) - 10);
+                }
+                localStorage.setItem('user', JSON.stringify(currentUser));
+            }
+        }
+        return response.data;
     }
 };
 

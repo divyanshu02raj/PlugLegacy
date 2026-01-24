@@ -11,6 +11,7 @@ import GameChat from "@/components/arena/GameChat";
 import GameInfoPanel from "@/components/arena/GameInfoPanel";
 import MobileDrawer, { MobileMenuButton } from "@/components/arena/MobileDrawer";
 import VideoOverlay from "@/components/arena/VideoOverlay";
+import { userService } from "@/services/api";
 
 // Game metadata - All supported games
 const gameInfo = {
@@ -102,11 +103,19 @@ const GameArena = () => {
     };
 
     const boardRef = useRef(null);
+    const [isResignModalOpen, setIsResignModalOpen] = useState(false);
 
-    const handleResign = () => {
-        if (window.confirm("Are you sure you want to resign?")) {
-            boardRef.current?.resign();
-        }
+    const handleResignClick = () => {
+        setIsResignModalOpen(true);
+    };
+
+    const confirmResign = () => {
+        boardRef.current?.resign();
+        setIsResignModalOpen(false);
+    };
+
+    const cancelResign = () => {
+        setIsResignModalOpen(false);
     };
 
     const handleOfferDraw = () => {
@@ -132,7 +141,7 @@ const GameArena = () => {
         }));
     };
 
-    const handleGameEnd = (result) => {
+    const handleGameEnd = async (result) => {
         if (!result) return;
 
         setScores(prev => {
@@ -157,6 +166,39 @@ const GameArena = () => {
             }
             return newScores;
         });
+
+        // Save Match Result to Backend
+        try {
+            let myColor = 'w';
+            if (activeGameMode === 'friend' && players?.[myId]) {
+                myColor = players[myId].color;
+            }
+
+            const winnerCode = result.winner === 'White' ? 'w' : (result.winner === 'Black' ? 'b' : 'draw');
+            // Logic: if draw -> draw. if winner matches my color -> win. else -> loss.
+            const matchResult = result.winner === 'Draw' ? 'draw' : (winnerCode === myColor ? 'win' : 'loss');
+
+            const matchData = {
+                gameId: gameId || 'chess',
+                result: matchResult,
+                opponent: {
+                    username: opponent.username,
+                    avatar: opponent.avatar,
+                    id: activeGameMode === 'friend' ? opponentId : null
+                },
+                score: scores.player, // Note: this is session score, not game material score. Material is not passed here easily unless we change prop.
+                // Actually result.reason might have info, or we just rely on win/loss.
+                // For now, let's use 0 or leave it, backend handles win/loss logic mainly.
+                moves: JSON.stringify(moves),
+                playerColor: myColor,
+                duration: 0
+            };
+
+            await userService.saveMatch(matchData);
+            // Could refresh profile here if we had a way to trigger it globally
+        } catch (error) {
+            console.error("Failed to save match result:", error);
+        }
     };
 
     return (
@@ -269,6 +311,8 @@ const GameArena = () => {
                                         onMove={setMoves}
                                         onGameOver={handleGameEnd}
                                         onScoreUpdate={handleScoreUpdate}
+                                        whitePlayerName={activeGameMode === 'computer' ? "Your Score" : (players?.[Object.keys(players).find(key => players[key].color === 'w')]?.username || "White")}
+                                        blackPlayerName={activeGameMode === 'computer' ? "Computer's Score" : (players?.[Object.keys(players).find(key => players[key].color === 'b')]?.username || "Black")}
                                     />
                                 </div>
 
@@ -335,6 +379,8 @@ const GameArena = () => {
                                             onMove={setMoves}
                                             onGameOver={handleGameEnd}
                                             onScoreUpdate={handleScoreUpdate}
+                                            whitePlayerName={activeGameMode === 'computer' ? "Your Score" : (players?.[Object.keys(players).find(key => players[key].color === 'w')]?.username || "White")}
+                                            blackPlayerName={activeGameMode === 'computer' ? "Computer's Score" : (players?.[Object.keys(players).find(key => players[key].color === 'b')]?.username || "Black")}
                                         />
                                     </div>
 
@@ -354,7 +400,7 @@ const GameArena = () => {
                                             onToggleMute={setIsCallMuted}
                                             onToggleVideo={setIsLocalVideoOn}
                                             hideMedia={activeGameMode === 'computer'}
-                                            onResign={handleResign}
+                                            onResign={handleResignClick}
                                             onDraw={handleOfferDraw}
                                         />
                                     )}
@@ -369,6 +415,43 @@ const GameArena = () => {
                         )}
                     </div>
                 </main>
+
+                {/* Resign Confirmation Modal */}
+                <AnimatePresence>
+                    {isResignModalOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                exit={{ scale: 0.9, y: 20 }}
+                                className="bg-[#0f1014] rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl"
+                            >
+                                <h3 className="text-xl font-bold text-white mb-2">Resign Game?</h3>
+                                <p className="text-white/60 mb-6 text-sm">Are you sure you want to resign? This will count as a loss.</p>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={cancelResign}
+                                        className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={confirmResign}
+                                        className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors"
+                                    >
+                                        Resign
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </motion.div>
     );

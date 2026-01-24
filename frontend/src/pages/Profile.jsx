@@ -28,11 +28,27 @@ const Profile = () => {
                 }
 
                 // 3. Set Profile Data
+                const formattedMatches = (target.matches || []).map(m => {
+                    const myPlayer = m.players.find(p => p.userId === target._id) || m.players[0]; // Fallback to first if schema issue
+                    const opponentPlayer = m.players.find(p => p.userId !== target._id);
+
+                    let eloChange = 0;
+                    if (myPlayer?.result === 'win') eloChange = 10;
+                    if (myPlayer?.result === 'loss') eloChange = -10;
+
+                    return {
+                        result: myPlayer?.result || 'draw',
+                        game: (m.gameId || 'chess').charAt(0).toUpperCase() + (m.gameId || 'chess').slice(1),
+                        opponent: opponentPlayer?.username || "Opponent",
+                        eloChange,
+                        time: new Date(m.timestamp).toLocaleDateString()
+                    };
+                });
+
                 setProfile({
                     ...target,
                     joinDate: new Date(target.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-                    // Mock data for visual completeness until GameService is ready
-                    recentMatches: [],
+                    recentMatches: formattedMatches,
                     achievements: [
                         { icon: "🏆", name: "Gladiator", desc: "Joined the Arena" },
                         { icon: "🌱", name: "New Blood", desc: "First Login" }

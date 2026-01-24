@@ -34,7 +34,7 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate }, ref) => {
+const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName, blackPlayerName }, ref) => {
     const renderBoard = () => {
         switch (gameId) {
             case "sudoku": return <SudokuBoard />;
@@ -46,7 +46,15 @@ const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, o
             case "number-recall": return <NumberRecallBoard />;
             case "tic-tac-toe": return <TicTacToeBoard />;
             case "connect-4": return <Connect4Board />;
-            case "chess": return <ChessBoard ref={ref} onGameStateChange={onGameStateChange} onMove={onMove} onGameOver={onGameOver} onScoreUpdate={onScoreUpdate} />;
+            case "chess": return <ChessBoard
+                ref={ref}
+                onGameStateChange={onGameStateChange}
+                onMove={onMove}
+                onGameOver={onGameOver}
+                onScoreUpdate={onScoreUpdate}
+                whitePlayerName={whitePlayerName}
+                blackPlayerName={blackPlayerName}
+            />;
             case "reversi": return <ReversiBoard />;
             case "ludo": return <LudoBoard />;
             case "snakes-ladders": return <SnakesLaddersBoard />;

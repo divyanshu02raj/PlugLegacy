@@ -156,7 +156,9 @@ const ChessPiece = ({ type, color, isActive }) => {
 };
 
 // --- Main Component ---
-const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreUpdate }, ref) => {
+const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName = "White", blackPlayerName = "Black" }, ref) => {
+    // ... (rest of component)
+
     const location = useLocation();
     const { socket } = useSocket();
 
@@ -661,15 +663,15 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                         {/* Scores / Stats */}
                         <div className="grid grid-cols-2 gap-3 mb-6">
                             <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
-                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">White Score</span>
+                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1 max-w-full truncate px-1">{whitePlayerName}</span>
                                 <span className="text-xl font-bold text-white">
-                                    {Object.values(capturedPieces.b).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0)}
+                                    {Object.values(capturedPieces.b).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'White' && (gameOverState.reason === 'Resignation' || gameOverState.reason === 'Checkmate') ? 60 : 0)}
                                 </span>
                             </div>
                             <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
-                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">Black Score</span>
+                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1 max-w-full truncate px-1">{blackPlayerName}</span>
                                 <span className="text-xl font-bold text-white">
-                                    {Object.values(capturedPieces.w).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0)}
+                                    {Object.values(capturedPieces.w).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0) + (gameOverState.winner === 'Black' && (gameOverState.reason === 'Resignation' || gameOverState.reason === 'Checkmate') ? 60 : 0)}
                                 </span>
                             </div>
                         </div>
