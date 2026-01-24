@@ -120,13 +120,42 @@ const PlayerHUD = ({
                             }
             `}
                     >
-                        {(avatar && (avatar.startsWith('http') || avatar.startsWith('/') || avatar.startsWith('data:'))) ? (
-                            <img src={avatar} alt={username} className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-2xl flex items-center justify-center h-full bg-obsidian-light text-foreground font-bold">
-                                {(avatar && avatar.length < 5) ? avatar : (username ? username.charAt(0).toUpperCase() : "👤")}
-                            </span>
-                        )}
+                        {(() => {
+                            const isUrl = avatar?.startsWith('http') || avatar?.startsWith('data:');
+                            const isFile = avatar?.match(/\.(jpeg|jpg|gif|png|svg|webp)$/i);
+                            const isImage = isUrl || isFile;
+
+                            // Check for known avatar name OR special bot mapping
+                            const knownAvatar = AVATARS.find(a => a.name === avatar) || (avatar === "🤖" ? AVATARS.find(a => a.name === "Automaton") : null);
+
+                            if (isImage) {
+                                return (
+                                    <img
+                                        src={isUrl ? avatar : (avatar.startsWith('/') ? avatar : `/${avatar}`)}
+                                        alt={username}
+                                        className="w-full h-full object-cover"
+                                    />
+                                );
+                            }
+
+                            if (knownAvatar) {
+                                const Icon = knownAvatar.icon;
+                                return (
+                                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${knownAvatar.color}`}>
+                                        <Icon className="w-3/5 h-3/5 text-white" />
+                                    </div>
+                                );
+                            }
+
+                            const displayText = avatar || username?.charAt(0).toUpperCase() || "👤";
+                            const isEmoji = displayText.length <= 2;
+
+                            return (
+                                <span className={`${isEmoji ? 'text-2xl' : 'text-[10px] leading-tight break-words p-1'} flex items-center justify-center h-full bg-obsidian-light text-foreground font-bold overflow-hidden text-center`}>
+                                    {displayText}
+                                </span>
+                            );
+                        })()}
                     </motion.div>
 
                     {/* Online Indicator */}

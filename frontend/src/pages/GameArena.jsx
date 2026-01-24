@@ -58,7 +58,14 @@ const GameArena = () => {
     const myId = socket?.id;
     const opponentId = Object.keys(players || {}).find(id => id !== myId);
 
-    const me = players?.[myId] || { username: "You", avatar: "👤", score: 0 };
+    // Fallback to local user data if not in multiplayer state
+    const localUser = JSON.parse(localStorage.getItem('user') || '{}');
+    const me = players?.[myId] || {
+        username: localUser.username || "You",
+        avatar: localUser.avatar || "👤",
+        score: localUser.wins || 0,
+        elo: localUser.elo
+    };
 
     let opponent = players?.[opponentId] || { username: "Waiting...", avatar: "⏳", score: 0 };
     if (activeGameMode === 'computer') {
