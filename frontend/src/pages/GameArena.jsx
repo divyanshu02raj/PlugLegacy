@@ -11,7 +11,7 @@ import GameChat from "@/components/arena/GameChat";
 import GameInfoPanel from "@/components/arena/GameInfoPanel";
 import MobileDrawer, { MobileMenuButton } from "@/components/arena/MobileDrawer";
 import VideoOverlay from "@/components/arena/VideoOverlay";
-import { userService } from "@/services/api";
+import { useWebRTC } from "@/hooks/useWebRTC";
 
 // Game metadata - All supported games
 const gameInfo = {
@@ -38,197 +38,242 @@ const gameInfo = {
     "snakes-ladders": { name: "Snakes & Ladders", icon: "🪜", color: "hsl(120 60% 45%)" },
 };
 
+// ... existing imports ...
+
 const GameArena = () => {
-    const { gameId } = useParams();
+    // Hooks and Context
     const navigate = useNavigate();
     const location = useLocation();
     const { socket } = useSocket();
     const isMobile = useIsMobile();
+    const boardRef = useRef(null);
+    const { gameId } = useParams();
+
+    // Restore 'game' variable
+    const game = gameInfo[gameId || ""] || { name: "Tic-Tac-Toe", icon: "❌", color: "hsl(210 90% 55%)" };
+
+    // Initial State - UI
     const [isMuted, setIsMuted] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeDrawerTab, setActiveDrawerTab] = useState("chat");
+    const [isResignModalOpen, setIsResignModalOpen] = useState(false);
 
-    // Game Active Mode (state from child board)
-    const [activeGameMode, setActiveGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
-    const isGameActive = !!activeGameMode;
+    // Game State
+    const [players, setPlayers] = useState(location.state?.players || {});
     const [moves, setMoves] = useState([]);
+    const [activeGameMode, setActiveGameMode] = useState("friend");
+    const [scores, setScores] = useState({ player: 0, opponent: 0 });
+    const [isGameActive, setIsGameActive] = useState(true);
+    const [isPlayerTurn, setIsPlayerTurn] = useState(true); // Default (updates via onTurnChange)
+    const [winner, setWinner] = useState(null);
 
-    // Reset game state when moving between modes or back to menu
-    useEffect(() => {
-        if (!activeGameMode) {
-            setMoves([]);
-            setScores({ player: 0, opponent: 0 });
-            setTurnColor('w');
-        }
-    }, [activeGameMode]);
-
-    const game = gameInfo[gameId || ""] || { name: "Tic-Tac-Toe", icon: "❌", color: "hsl(210 90% 55%)" };
-
-    // Player Data
-    const { players } = location.state || {};
-    const myId = socket?.id;
-    const opponentId = Object.keys(players || {}).find(id => id !== myId);
-
-    // Fallback to local user data if not in multiplayer state
+    // Derived User Info
     const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const me = players?.[myId] || {
+    const myColor = Object.keys(players).find(key => players[key]?.username === localUser.username) === 'w' ? 'w' : 'b'; // default logic
+
+    const me = {
         username: localUser.username || "You",
         avatar: localUser.avatar || "👤",
-        score: localUser.wins || 0,
-        elo: localUser.elo
+        color: myColor
     };
 
-    let opponent = players?.[opponentId] || { username: "Waiting...", avatar: "⏳", score: 0 };
-    if (activeGameMode === 'computer') {
-        opponent = { username: "Stockfish AI", avatar: "🤖", score: 0 };
-    }
+    const opponent = Object.values(players).find(p => p.username !== localUser.username) || {
+        username: "Opponent",
+        avatar: "👤",
+        color: myColor === 'w' ? 'b' : 'w'
+    };
 
-    // Mock data
-    // const isPlayerTurn = true; // Removed hardcoded value
+    // Handlers
+    const handleGameEnd = (result) => {
+        setIsGameActive(false);
+        setWinner(result);
+        console.log("Game Over:", result);
+    };
 
-    // Call State (Voice & Video)
-    const [isCallActive, setIsCallActive] = useState(false);
+    const handleScoreUpdate = (newScores) => {
+        if (newScores) setScores(newScores);
+    };
+
+    const handleResignClick = () => setIsResignModalOpen(true);
+
+    const confirmResign = () => {
+        if (socket && location.state?.roomId) {
+            socket.emit('resign_game', { roomId: location.state.roomId });
+        }
+        setIsResignModalOpen(false);
+        setIsGameActive(false); // Optimistic update
+    };
+
+    const cancelResign = () => setIsResignModalOpen(false);
+
+    const handleOfferDraw = () => {
+        if (socket && location.state?.roomId) {
+            socket.emit('offer_draw', { roomId: location.state.roomId });
+        }
+    };
+
+    const handleTurnChange = (turnColor) => {
+        setIsPlayerTurn(turnColor === me.color);
+    };
+
+    const roomId = location.state?.roomId; // Extract roomId clearly
+    // CONTEXT: Debugging Black Screen - Fixed Import, Re-enabling Hook
+    const {
+        localStream,
+        remoteStream,
+        isCallIncoming,
+        isCallActive, // Replaces local state
+        startCall,
+        answerCall,
+        declineCall,
+        endCall,
+        incomingCallData
+    } = useWebRTC(roomId);
+
+    // Dummy values removed
+
+    // Call State (Voice & Video) - Local UI toggles
     const [isCallMuted, setIsCallMuted] = useState(false);
-    const [isLocalVideoOn, setIsLocalVideoOn] = useState(false);
+    const [isLocalVideoOn, setIsLocalVideoOn] = useState(true); // Default true when video call starts
 
-    const handleStartCall = (type) => {
-        setIsCallActive(true);
+    // Sync Mute/Video Toggles with specific Tracks
+    useEffect(() => {
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => track.enabled = !isCallMuted);
+            localStream.getVideoTracks().forEach(track => track.enabled = isLocalVideoOn);
+        }
+    }, [isCallMuted, isLocalVideoOn, localStream]);
+
+    const handleStartCall = async (type) => {
         setIsLocalVideoOn(type === 'video');
         setIsCallMuted(false);
+        try {
+            await startCall(type);
+        } catch (e) {
+            console.error(e);
+            alert(`Failed to start call: ${e.name} - ${e.message}`);
+        }
+    };
+
+    const handleAnswerCall = async () => {
+        try {
+            await answerCall();
+        } catch (e) {
+            console.error(e);
+            alert(`Failed to answer call: ${e.name} - ${e.message}`);
+        }
     };
 
     const handleEndCall = () => {
-        setIsCallActive(false);
-        setIsLocalVideoOn(false);
+        endCall();
+        setIsLocalVideoOn(false); // Reset defaults
         setIsCallMuted(false);
     };
 
-    const boardRef = useRef(null);
-    const [isResignModalOpen, setIsResignModalOpen] = useState(false);
+    // Socket: Join Room & Game Events
+    useEffect(() => {
+        if (!socket || !roomId) return;
 
-    const handleResignClick = () => {
-        setIsResignModalOpen(true);
-    };
+        console.log("Joining room:", roomId);
+        socket.emit("join_game_room", roomId);
 
-    const confirmResign = () => {
-        boardRef.current?.resign();
-        setIsResignModalOpen(false);
-    };
+        const handleGameMove = ({ move, turn }) => {
+            setMoves((prev) => [...prev, move]);
+            // If it's a chess move, we might need to update the board state locally via ref or props
+            // For now, updating 'moves' triggers re-renders. 
+            // The GameBoard component should preferably listen to 'moves' or we pass the move to it.
+            // Assumption: GameBoard updates itself or we pass 'moves' to it.
+            // We also update turn:
+            setIsPlayerTurn(turn === me.color);
+        };
 
-    const cancelResign = () => {
-        setIsResignModalOpen(false);
-    };
+        const handleGameEndEvent = ({ result, winner }) => {
+            handleGameEnd(result);
+            if (winner) setWinner(winner);
+        };
 
-    const handleOfferDraw = () => {
-        boardRef.current?.offerDraw();
-    };
+        const handleOpponentResigned = () => {
+            handleGameEnd("win"); // You win if they resign
+            // Show toast or modal?
+        };
 
-    const [scores, setScores] = useState({ player: 0, opponent: 0 });
-
-    const [turnColor, setTurnColor] = useState('w');
-
-    // Handle material score updates from ChessBoard
-    const handleScoreUpdate = ({ w, b }) => {
-        // Determine player colors
-        let myColor = 'w';
-        if (activeGameMode === 'computer') {
-            myColor = 'w'; // User is always white vs computer for now
-        } else if (activeGameMode === 'friend' && players?.[myId]) {
-            myColor = players[myId].color;
-        }
-
-        setScores(prev => ({
-            ...prev,
-            player: myColor === 'w' ? w : b,
-            opponent: myColor === 'w' ? b : w
-        }));
-    };
-
-    const handleTurnChange = (turn) => {
-        setTurnColor(turn);
-    };
-
-    // Determine if it is player's turn
-    let myColor = 'w';
-    if (activeGameMode === 'friend' && players?.[myId]) {
-        myColor = players[myId].color;
-    }
-    const isPlayerTurn = activeGameMode ? (turnColor === myColor) : true;
-
-    const handleGameEnd = async (result) => {
-        if (!result) return;
-
-        setScores(prev => {
-            let newScores = { ...prev };
-            if (result.winner === 'Draw') {
-                newScores.player += 0.5;
-                newScores.opponent += 0.5;
+        const handleDrawOffered = () => {
+            // Show draw offer modal (TODO)
+            const accept = window.confirm("Opponent offered a draw. Accept?");
+            if (accept) {
+                socket.emit("accept_draw", { roomId });
+                handleGameEnd("draw");
             } else {
-                // Determine my color
-                let myColor = 'w'; // Default for computer
-                if (activeGameMode === 'friend' && players?.[myId]) {
-                    myColor = players[myId].color;
-                }
-                // Map "White"/"Black" string from ChessBoard to 'w'/'b'
-                const winnerCode = result.winner === 'White' ? 'w' : 'b';
-
-                if (winnerCode === myColor) {
-                    newScores.player += 1;
-                } else {
-                    newScores.opponent += 1;
-                }
+                // socket.emit("decline_draw", { roomId });
             }
-            return newScores;
-        });
+        };
 
-        // Save Match Result to Backend
-        try {
-            let myColor = 'w';
-            if (activeGameMode === 'friend' && players?.[myId]) {
-                myColor = players[myId].color;
+        socket.on("game_move", handleGameMove);
+        socket.on("game_over", handleGameEndEvent);
+        socket.on("opponent_resigned", handleOpponentResigned);
+        socket.on("draw_offered", handleDrawOffered);
+
+        return () => {
+            socket.off("game_move", handleGameMove);
+            socket.off("game_over", handleGameEndEvent);
+            socket.off("opponent_resigned", handleOpponentResigned);
+            socket.off("draw_offered", handleDrawOffered);
+        };
+    }, [socket, roomId, me.color]);
+
+    // Cleanup: Leave room on unmount (optional, socket disconnect handles it usually)
+    useEffect(() => {
+        return () => {
+            if (socket && roomId) {
+                socket.emit("leave_room", roomId);
             }
+        };
+    }, [socket, roomId]);
 
-            const winnerCode = result.winner === 'White' ? 'w' : (result.winner === 'Black' ? 'b' : 'draw');
-            // Logic: if draw -> draw. if winner matches my color -> win. else -> loss.
-            const matchResult = result.winner === 'Draw' ? 'draw' : (winnerCode === myColor ? 'win' : 'loss');
-
-            // Calculate Bonus
-            let bonus = 0;
-            if (matchResult === 'win') bonus = 60;
-            else if (matchResult === 'draw') bonus = 30;
-
-            const finalScore = scores.player + bonus;
-
-            const matchData = {
-                gameId: gameId || 'chess',
-                result: matchResult,
-                opponent: {
-                    username: opponent.username,
-                    avatar: opponent.avatar,
-                    id: activeGameMode === 'friend' ? opponent.userId : null,
-                    score: scores.opponent + (matchResult === 'loss' ? 60 : (matchResult === 'draw' ? 30 : 0)) // Opponent bonus
-                },
-                score: finalScore,
-                moves: JSON.stringify(moves),
-                playerColor: myColor,
-                duration: 0
-            };
-
-            await userService.saveMatch(matchData);
-            // Could refresh profile here if we had a way to trigger it globally
-        } catch (error) {
-            console.error("Failed to save match result:", error);
-        }
-    };
+    // ... existing boardRef ...
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            className="min-h-screen bg-background overflow-hidden"
-        >
+        <motion.div>
+            {/* Incoming Call Modal */}
+            <AnimatePresence>
+                {isCallIncoming && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -50 }}
+                        className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] glass-card px-6 py-4 rounded-2xl border border-green-500/30 flex items-center gap-6 shadow-2xl"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping" />
+                                <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-xl">
+                                    📞
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-white">Incoming {incomingCallData?.type} Call</h3>
+                                <p className="text-xs text-white/50">Requesting connection...</p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <button
+                                onClick={declineCall}
+                                className="p-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-colors"
+                            >
+                                <VolumeX className="w-5 h-5" />
+                            </button>
+                            <button
+                                onClick={handleAnswerCall}
+                                className="p-2.5 rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors shadow-lg shadow-green-500/20"
+                            >
+                                <Volume2 className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {isCallActive && (
                     <VideoOverlay
@@ -237,9 +282,13 @@ const GameArena = () => {
                         setIsMuted={setIsCallMuted}
                         isCameraOff={!isLocalVideoOn}
                         setIsCameraOff={(val) => setIsLocalVideoOn(!val)}
+                        localStream={localStream}
+                        remoteStream={remoteStream}
                     />
                 )}
             </AnimatePresence>
+
+            {/* ... rest of content ... */}
             {/* Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-gradient-to-b from-obsidian via-background to-obsidian" />

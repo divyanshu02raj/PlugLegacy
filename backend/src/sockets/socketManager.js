@@ -244,6 +244,23 @@ module.exports = (io) => {
             }
         });
 
+        // --- WEBRTC SIGNALING ---
+        socket.on("call_user", ({ roomId, offer, type }) => {
+            socket.to(roomId).emit("incoming_call", { offer, from: socket.id, type });
+        });
+
+        socket.on("answer_call", ({ roomId, answer }) => {
+            socket.to(roomId).emit("call_answered", { answer });
+        });
+
+        socket.on("ice_candidate", ({ roomId, candidate }) => {
+            socket.to(roomId).emit("ice_candidate", { candidate });
+        });
+
+        socket.on("end_call", ({ roomId }) => {
+            socket.to(roomId).emit("call_ended");
+        });
+
         // --- CHAT ---
         socket.on('game_chat_message', ({ roomId, message, username, avatar }) => {
             io.to(roomId).emit('game_chat_message', {

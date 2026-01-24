@@ -1,9 +1,31 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Maximize2 } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 
-const VideoOverlay = ({ onClose, isMuted, setIsMuted, isCameraOff, setIsCameraOff }) => {
+const VideoOverlay = ({
+    onClose,
+    isMuted,
+    setIsMuted,
+    isCameraOff,
+    setIsCameraOff,
+    localStream,
+    remoteStream
+}) => {
     const constraintsRef = useRef(null);
+    const localVideoRef = useRef(null);
+    const remoteVideoRef = useRef(null);
+
+    useEffect(() => {
+        if (localVideoRef.current && localStream) {
+            localVideoRef.current.srcObject = localStream;
+        }
+    }, [localStream]);
+
+    useEffect(() => {
+        if (remoteVideoRef.current && remoteStream) {
+            remoteVideoRef.current.srcObject = remoteStream;
+        }
+    }, [remoteStream]);
 
     return (
         <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-50 flex items-start justify-end p-6">
@@ -17,17 +39,21 @@ const VideoOverlay = ({ onClose, isMuted, setIsMuted, isCameraOff, setIsCameraOf
             >
                 {/* Remote Video (Main) */}
                 <div className="absolute inset-0 bg-neutral-800 flex items-center justify-center">
-                    <span className="text-4xl">🤖</span>
+                    {remoteStream ? (
+                        <video
+                            ref={remoteVideoRef}
+                            autoPlay
+                            playsInline
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center gap-2">
+                            <span className="text-4xl animate-pulse">📡</span>
+                            <p className="text-white/50 text-xs">Connecting...</p>
+                        </div>
+                    )}
                     {/* Mock overlay gradient */}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent" />
-                </div>
-
-                {/* Header */}
-                <div className="absolute top-0 inset-x-0 p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-xs font-medium text-white/80 shadow-black drop-shadow-md">ProPlayer99</span>
-                    </div>
+                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
                 </div>
 
                 {/* Local Video (PiP) */}
@@ -37,8 +63,17 @@ const VideoOverlay = ({ onClose, isMuted, setIsMuted, isCameraOff, setIsCameraOf
                     whileHover={{ scale: 1.05 }}
                     className="absolute top-4 right-4 w-24 h-32 bg-neutral-700 rounded-xl overflow-hidden border border-white/20 shadow-lg cursor-grab active:cursor-grabbing z-10"
                 >
-                    <div className={`w-full h-full flex items-center justify-center ${isCameraOff ? "bg-neutral-800" : "bg-neutral-600"}`}>
-                        {isCameraOff ? <VideoOff className="w-4 h-4 text-white/40" /> : <span className="text-xl">🎮</span>}
+                    <div className={`w-full h-full flex items-center justify-center ${isCameraOff ? "bg-neutral-800" : "bg-black"}`}>
+                        {!isCameraOff && (
+                            <video
+                                ref={localVideoRef}
+                                autoPlay
+                                playsInline
+                                muted // Local video must be muted
+                                className="w-full h-full object-cover transform -scale-x-100" // Mirror effect
+                            />
+                        )}
+                        {isCameraOff && <VideoOff className="w-4 h-4 text-white/40" />}
                     </div>
                 </motion.div>
 
