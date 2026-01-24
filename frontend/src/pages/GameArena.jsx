@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Maximize2, Volume2, VolumeX } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -91,6 +91,64 @@ const GameArena = () => {
         setIsCallActive(false);
         setIsLocalVideoOn(false);
         setIsCallMuted(false);
+    };
+
+    const boardRef = useRef(null);
+
+    const handleResign = () => {
+        if (window.confirm("Are you sure you want to resign?")) {
+            boardRef.current?.resign();
+        }
+    };
+
+    const handleOfferDraw = () => {
+        boardRef.current?.offerDraw();
+    };
+
+    const [scores, setScores] = useState({ player: 0, opponent: 0 });
+
+    // Handle material score updates from ChessBoard
+    const handleScoreUpdate = ({ w, b }) => {
+        // Determine player colors
+        let myColor = 'w';
+        if (activeGameMode === 'computer') {
+            myColor = 'w'; // User is always white vs computer for now
+        } else if (activeGameMode === 'friend' && players?.[myId]) {
+            myColor = players[myId].color;
+        }
+
+        setScores(prev => ({
+            ...prev,
+            player: myColor === 'w' ? w : b,
+            opponent: myColor === 'w' ? b : w
+        }));
+    };
+
+    const handleGameEnd = (result) => {
+        if (!result) return;
+
+        setScores(prev => {
+            let newScores = { ...prev };
+            if (result.winner === 'Draw') {
+                newScores.player += 0.5;
+                newScores.opponent += 0.5;
+            } else {
+                // Determine my color
+                let myColor = 'w'; // Default for computer
+                if (activeGameMode === 'friend' && players?.[myId]) {
+                    myColor = players[myId].color;
+                }
+                // Map "White"/"Black" string from ChessBoard to 'w'/'b'
+                const winnerCode = result.winner === 'White' ? 'w' : 'b';
+
+                if (winnerCode === myColor) {
+                    newScores.player += 1;
+                } else {
+                    newScores.opponent += 1;
+                }
+            }
+            return newScores;
+        });
     };
 
     return (
@@ -191,13 +249,19 @@ const GameArena = () => {
                                         username={opponent.username}
                                         avatar={opponent.avatar}
                                         isActive={!isPlayerTurn}
-                                        score={opponent.score || 0}
+                                        score={scores.opponent}
                                     />
                                 )}
 
                                 {/* Game Board */}
                                 <div className="flex-1 flex items-center justify-center py-4 overflow-auto">
-                                    <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} onMove={setMoves} />
+                                    <GameBoard
+                                        gameId={gameId}
+                                        onGameStateChange={setActiveGameMode}
+                                        onMove={setMoves}
+                                        onGameOver={handleGameEnd}
+                                        onScoreUpdate={handleScoreUpdate}
+                                    />
                                 </div>
 
                                 {/* Player HUD */}
@@ -207,7 +271,7 @@ const GameArena = () => {
                                         username={me.username}
                                         avatar={me.avatar}
                                         isActive={isPlayerTurn}
-                                        score={me.score || 0}
+                                        score={scores.player}
                                         isFriend={true}
                                         isCallActive={isCallActive}
                                         isCallMuted={isCallMuted}
@@ -250,13 +314,20 @@ const GameArena = () => {
                                             username={opponent.username}
                                             avatar={opponent.avatar}
                                             isActive={!isPlayerTurn}
-                                            score={opponent.score || 0}
+                                            score={scores.opponent}
                                         />
                                     )}
 
                                     {/* Game Board */}
                                     <div className="flex-1 min-h-0 flex items-center justify-center overflow-auto">
-                                        <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} onMove={setMoves} />
+                                        <GameBoard
+                                            ref={boardRef}
+                                            gameId={gameId}
+                                            onGameStateChange={setActiveGameMode}
+                                            onMove={setMoves}
+                                            onGameOver={handleGameEnd}
+                                            onScoreUpdate={handleScoreUpdate}
+                                        />
                                     </div>
 
                                     {/* Player HUD */}
@@ -266,7 +337,7 @@ const GameArena = () => {
                                             username={me.username}
                                             avatar={me.avatar}
                                             isActive={isPlayerTurn}
-                                            score={me.score || 0}
+                                            score={scores.player}
                                             isFriend={true}
                                             isCallActive={isCallActive}
                                             isCallMuted={isCallMuted}
@@ -275,6 +346,8 @@ const GameArena = () => {
                                             onToggleMute={setIsCallMuted}
                                             onToggleVideo={setIsLocalVideoOn}
                                             hideMedia={activeGameMode === 'computer'}
+                                            onResign={handleResign}
+                                            onDraw={handleOfferDraw}
                                         />
                                     )}
                                 </div>

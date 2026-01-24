@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, forwardRef } from "react";
 
 // Lazy load all game boards
 const SudokuBoard = lazy(() => import("./boards/SudokuBoard"));
@@ -34,7 +34,7 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const GameBoard = ({ gameId, onGameStateChange, onMove }) => {
+const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate }, ref) => {
     const renderBoard = () => {
         switch (gameId) {
             case "sudoku": return <SudokuBoard />;
@@ -46,7 +46,7 @@ const GameBoard = ({ gameId, onGameStateChange, onMove }) => {
             case "number-recall": return <NumberRecallBoard />;
             case "tic-tac-toe": return <TicTacToeBoard />;
             case "connect-4": return <Connect4Board />;
-            case "chess": return <ChessBoard onGameStateChange={onGameStateChange} onMove={onMove} />;
+            case "chess": return <ChessBoard ref={ref} onGameStateChange={onGameStateChange} onMove={onMove} onGameOver={onGameOver} onScoreUpdate={onScoreUpdate} />;
             case "reversi": return <ReversiBoard />;
             case "ludo": return <LudoBoard />;
             case "snakes-ladders": return <SnakesLaddersBoard />;
@@ -67,6 +67,6 @@ const GameBoard = ({ gameId, onGameStateChange, onMove }) => {
             {renderBoard()}
         </Suspense>
     );
-};
+});
 
 export default GameBoard;

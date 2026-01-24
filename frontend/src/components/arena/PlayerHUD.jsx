@@ -8,7 +8,7 @@ const PlayerHUD = ({
     position, username, avatar, time, isActive,
     score = 0, isFriend = false,
     isCallActive = false, isCallMuted = false, isLocalVideoOn = false,
-    onStartCall, onToggleMute, onToggleVideo,
+    onStartCall, onToggleMute, onToggleVideo, onResign, onDraw,
     hideMedia = false, hideActions = false
 }) => {
     const isPlayer = position === "bottom";
@@ -235,23 +235,27 @@ const PlayerHUD = ({
                     {/* Game Actions */}
                     {!hideActions && (
                         <div className="flex items-center gap-3">
-                            {[
-                                { icon: Flag, label: "Resign", color: "text-red-400 hover:bg-red-500/20" },
-                                { icon: Handshake, label: "Offer Draw", color: "text-yellow-400 hover:bg-yellow-500/20" },
-                            ].map(({ icon: Icon, label, color }) => (
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={onResign}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border transition-colors duration-200 text-red-400 hover:bg-red-500/20"
+                            >
+                                <Flag className="w-4 h-4" />
+                                <span className="text-sm font-medium">Resign</span>
+                            </motion.button>
+
+                            {!hideMedia && (
                                 <motion.button
-                                    key={label}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className={`
-                        flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border
-                        transition-colors duration-200 ${color}
-                      `}
+                                    onClick={onDraw}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border transition-colors duration-200 text-yellow-400 hover:bg-yellow-500/20"
                                 >
-                                    <Icon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{label}</span>
+                                    <Handshake className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Offer Draw</span>
                                 </motion.button>
-                            ))}
+                            )}
                         </div>
                     )}
                 </motion.div>

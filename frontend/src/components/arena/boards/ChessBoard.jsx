@@ -156,12 +156,23 @@ const ChessPiece = ({ type, color, isActive }) => {
 };
 
 // --- Main Component ---
-const ChessBoard = ({ onGameStateChange, onMove }) => {
+const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreUpdate }, ref) => {
     const location = useLocation();
     const { socket } = useSocket();
 
     // Game Modes: null (selection), 'computer', 'stranger', 'friend'
     const [gameMode, setGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
+    const [gameOverState, setGameOverState] = useState(null);
+
+    // Score Values
+    const PIECE_VALUES = useMemo(() => ({
+        p: 1,
+        n: 3,
+        b: 3,
+        r: 5,
+        q: 9,
+        k: 0
+    }), []);
 
     // Notify parent about game state (for HUD visibility)
     useEffect(() => {
@@ -172,6 +183,37 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
 
     const [roomId, setRoomId] = useState(location.state?.roomId || null);
     const [players, setPlayers] = useState(location.state?.players || {});
+
+    // Use Ref for persistent game instance (preserves history)
+    const chessRef = useRef(new Chess());
+
+    // UI State
+    const [fen, setFen] = useState("start");
+    const [board, setBoard] = useState(chessRef.current.board());
+    const [selected, setSelected] = useState(null);
+    const [lastMove, setLastMove] = useState(null);
+    const [capturedPieces, setCapturedPieces] = useState({ w: [], b: [] });
+
+    useImperativeHandle(ref, () => ({
+        resign: () => {
+            if (gameMode === 'computer') {
+                const game = chessRef.current;
+                const result = {
+                    winner: game.turn() === 'w' ? 'Black' : 'White',
+                    reason: 'Resignation'
+                };
+                setGameOverState(result);
+                onGameOver?.(result);
+            } else if (roomId && socket) {
+                socket.emit('game_resign', { roomId });
+            }
+        },
+        offerDraw: () => {
+            if (roomId && socket) {
+                socket.emit('game_offer_draw', { roomId });
+            }
+        }
+    }), [gameMode, roomId, socket, onGameOver]);
 
     // React to navigation/invite updates while mounted
     useEffect(() => {
@@ -190,21 +232,61 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
         return false;
     }, [gameMode, players, socket]);
 
-    // Use Ref for persistent game instance (preserves history)
-    const chessRef = useRef(new Chess());
-
-    // UI State
-    const [fen, setFen] = useState("start");
-    const [board, setBoard] = useState(chessRef.current.board());
-    const [selected, setSelected] = useState(null);
-    const [lastMove, setLastMove] = useState(null);
-    const [capturedPieces, setCapturedPieces] = useState({ w: [], b: [] });
-
     const updateGameState = useCallback(() => {
-        setFen(chessRef.current.fen());
-        setBoard(chessRef.current.board());
-        if (onMove) onMove(chessRef.current.history());
-    }, [onMove]);
+        const game = chessRef.current;
+        setFen(game.fen());
+        setBoard(game.board());
+        if (onMove) onMove(game.history());
+
+        // Calculate Scores (Based on Captured Pieces)
+        const history = game.history({ verbose: true });
+        let whiteCaptureScore = 0; // Points for White (from captured Black pieces)
+        let blackCaptureScore = 0; // Points for Black (from captured White pieces)
+
+        // We can reuse the loop for both scores and capturedPieces state to be efficient
+        const captured = { w: [], b: [] };
+
+        history.forEach(move => {
+            if (move.captured) {
+                const capturedPieceValue = PIECE_VALUES[move.captured];
+
+                // If White captured (move.color === 'w'), they get points.
+                // The captured piece is Black. Add to 'b' graveyard.
+                if (move.color === 'w') {
+                    whiteCaptureScore += capturedPieceValue;
+                    captured.b.push({ type: move.captured, color: 'b' });
+                } else {
+                    blackCaptureScore += capturedPieceValue;
+                    captured.w.push({ type: move.captured, color: 'w' });
+                }
+            }
+        });
+
+        // Emit scores
+        if (onScoreUpdate) {
+            onScoreUpdate({ w: whiteCaptureScore, b: blackCaptureScore });
+        }
+
+        setCapturedPieces(captured);
+
+
+
+        // Check for Game Over
+        if (game.isGameOver() && !gameOverState) {
+            let result = { winner: null, reason: '' };
+            if (game.isCheckmate()) {
+                result = {
+                    winner: game.turn() === 'w' ? 'Black' : 'White',
+                    reason: 'Checkmate'
+                };
+            } else if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) {
+                result = { winner: 'Draw', reason: 'Draw' };
+            }
+
+            setGameOverState(result);
+            onGameOver?.(result);
+        }
+    }, [onMove, gameOverState, onGameOver]);
 
     const [engine, setEngine] = useState(null);
 
@@ -254,7 +336,7 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
     // Trigger AI move
     useEffect(() => {
         const game = chessRef.current;
-        if (gameMode === 'computer' && game.turn() === 'b' && !game.isGameOver() && engine) {
+        if (gameMode === 'computer' && game.turn() === 'b' && !game.isGameOver() && engine && !gameOverState) {
             // Small delay for realism
             const timer = setTimeout(() => {
                 engine.postMessage(`position fen ${game.fen()}`);
@@ -262,7 +344,7 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
             }, 500);
             return () => clearTimeout(timer);
         }
-    }, [fen, gameMode, engine]);
+    }, [fen, gameMode, engine, gameOverState]);
 
     // Socket Listeners for Multiplayer
     useEffect(() => {
@@ -288,17 +370,25 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
             }
         };
 
+        const handleGameEnd = ({ winner, reason }) => {
+            const result = { winner, reason };
+            setGameOverState(result);
+            onGameOver?.(result);
+        };
+
         socket.on('opponent_move', handleOpponentMove);
+        socket.on('game_end', handleGameEnd); // Listen for server game end events
 
         return () => {
             socket.off('opponent_move', handleOpponentMove);
+            socket.off('game_end', handleGameEnd);
         };
-    }, [socket, roomId, updateGameState]);
+    }, [socket, roomId, updateGameState, onGameOver]);
 
 
 
     const validMoves = useMemo(() => {
-        if (!selected) return [];
+        if (!selected || gameOverState) return []; // No moves if game over
         const moves = chessRef.current.moves({
             square: String.fromCharCode(97 + selected.col) + (8 - selected.row),
             verbose: true
@@ -308,14 +398,16 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
             const col = m.to.charCodeAt(0) - 97;
             return [row, col];
         });
-    }, [selected, fen]);
+    }, [selected, fen, gameOverState]);
 
     const handleSquareClick = (row, col) => {
-        if (!gameMode) return;
+        if (!gameMode || gameOverState) return;
         const game = chessRef.current; // Alias for easier reading
 
         // Prevent moving if it's computer's turn in vs computer mode
         if (gameMode === 'computer' && game.turn() === 'b') return;
+
+        // ... (rest of logic remains similar but guarded by gameOverState)
         if (game.isGameOver()) return;
 
         const piece = board[row][col];
@@ -350,14 +442,6 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
                     setLastMove({ from: [selected.row, selected.col], to: [row, col] });
                     setSelected(null);
 
-                    // Update captured pieces
-                    if (move.captured) {
-                        setCapturedPieces(prev => ({
-                            ...prev,
-                            [move.color === 'w' ? 'b' : 'w']: [...prev[move.color === 'w' ? 'b' : 'w'], { type: move.captured, color: move.color === 'w' ? 'b' : 'w' }]
-                        }));
-                    }
-
                     // Emit move if multiplayer
                     if (roomId && socket) {
                         socket.emit('game_move', { roomId, move: move.san, fen: game.fen() });
@@ -376,6 +460,7 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
 
     const resetGame = () => {
         chessRef.current.reset();
+        setGameOverState(null);
         updateGameState();
         setSelected(null);
         setLastMove(null);
@@ -549,30 +634,39 @@ const ChessBoard = ({ onGameStateChange, onMove }) => {
                 </div>
             </div>
 
-            {/* Game Over Message */}
-            {game.isGameOver() && (
-                <div className="mt-4 p-4 rounded-xl bg-white/10 border border-white/20 backdrop-blur-md text-center animate-in fade-in zoom-in">
-                    <h3 className="text-xl font-bold text-white mb-2">
-                        {game.isCheckmate() ? "Checkmate!" : "Draw"}
-                    </h3>
-                    <p className="text-sm text-white/70">
-                        {game.isCheckmate()
-                            ? `${game.turn() === 'w' ? 'Black' : 'White'} Wins!`
-                            : "Game ended in a draw"}
-                    </p>
-                </div>
+            {/* Game Over Message Overlay */}
+            {gameOverState && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl"
+                >
+                    <div className="p-6 rounded-2xl bg-black/80 border border-white/20 shadow-2xl text-center">
+                        <h3 className="text-2xl font-bold text-white mb-2">
+                            {gameOverState.winner === 'Draw' ? "It's a Draw" : `${gameOverState.winner} Wins!`}
+                        </h3>
+                        <p className="text-sm text-white/60 mb-4">{gameOverState.reason}</p>
+                        <button
+                            onClick={resetGame}
+                            className="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            Play Again
+                        </button>
+                    </div>
+                </motion.div>
             )}
 
 
         </motion.div>
     );
-};
+});
 
 // Wrap with ErrorBoundary for safety
-const SafeChessBoard = (props) => (
+const SafeChessBoard = forwardRef((props, ref) => (
     <ErrorBoundary>
-        <ChessBoard {...props} />
+        <ChessBoard {...props} ref={ref} />
     </ErrorBoundary>
-);
+));
 
 export default SafeChessBoard;
+
