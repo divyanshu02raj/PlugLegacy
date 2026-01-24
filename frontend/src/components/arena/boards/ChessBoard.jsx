@@ -156,7 +156,7 @@ const ChessPiece = ({ type, color, isActive }) => {
 };
 
 // --- Main Component ---
-const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName = "White", blackPlayerName = "Black" }, ref) => {
+const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreUpdate, onTurnChange, whitePlayerName = "White", blackPlayerName = "Black" }, ref) => {
     // ... (rest of component)
 
     const location = useLocation();
@@ -239,6 +239,7 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
         setFen(game.fen());
         setBoard(game.board());
         if (onMove) onMove(game.history());
+        if (onTurnChange) onTurnChange(game.turn());
 
         // Calculate Scores (Based on Captured Pieces)
         const history = game.history({ verbose: true });

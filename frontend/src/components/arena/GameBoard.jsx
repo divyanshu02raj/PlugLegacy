@@ -34,8 +34,9 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName, blackPlayerName }, ref) => {
+const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName, blackPlayerName, onTurnChange }, ref) => {
     const renderBoard = () => {
+        const props = { onTurnChange }; // Helper to pass down
         switch (gameId) {
             case "sudoku": return <SudokuBoard />;
             case "2048": return <Game2048Board />;
@@ -52,8 +53,10 @@ const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, o
                 onMove={onMove}
                 onGameOver={onGameOver}
                 onScoreUpdate={onScoreUpdate}
+                onTurnChange={onScoreUpdate ? props.onTurnChange : undefined} // Logic simplification, see below
                 whitePlayerName={whitePlayerName}
                 blackPlayerName={blackPlayerName}
+                {...props}
             />;
             case "reversi": return <ReversiBoard />;
             case "ludo": return <LudoBoard />;

@@ -58,6 +58,7 @@ const GameArena = () => {
         if (!activeGameMode) {
             setMoves([]);
             setScores({ player: 0, opponent: 0 });
+            setTurnColor('w');
         }
     }, [activeGameMode]);
 
@@ -83,7 +84,7 @@ const GameArena = () => {
     }
 
     // Mock data
-    const isPlayerTurn = true;
+    // const isPlayerTurn = true; // Removed hardcoded value
 
     // Call State (Voice & Video)
     const [isCallActive, setIsCallActive] = useState(false);
@@ -124,6 +125,8 @@ const GameArena = () => {
 
     const [scores, setScores] = useState({ player: 0, opponent: 0 });
 
+    const [turnColor, setTurnColor] = useState('w');
+
     // Handle material score updates from ChessBoard
     const handleScoreUpdate = ({ w, b }) => {
         // Determine player colors
@@ -140,6 +143,17 @@ const GameArena = () => {
             opponent: myColor === 'w' ? b : w
         }));
     };
+
+    const handleTurnChange = (turn) => {
+        setTurnColor(turn);
+    };
+
+    // Determine if it is player's turn
+    let myColor = 'w';
+    if (activeGameMode === 'friend' && players?.[myId]) {
+        myColor = players[myId].color;
+    }
+    const isPlayerTurn = activeGameMode ? (turnColor === myColor) : true;
 
     const handleGameEnd = async (result) => {
         if (!result) return;
@@ -379,6 +393,7 @@ const GameArena = () => {
                                             onMove={setMoves}
                                             onGameOver={handleGameEnd}
                                             onScoreUpdate={handleScoreUpdate}
+                                            onTurnChange={handleTurnChange} // Add this prop
                                             whitePlayerName={activeGameMode === 'computer' ? "Your Score" : (players?.[Object.keys(players).find(key => players[key].color === 'w')]?.username || "White")}
                                             blackPlayerName={activeGameMode === 'computer' ? "Computer's Score" : (players?.[Object.keys(players).find(key => players[key].color === 'b')]?.username || "Black")}
                                         />
