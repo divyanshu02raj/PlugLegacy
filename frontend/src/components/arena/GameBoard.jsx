@@ -34,7 +34,7 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const GameBoard = ({ gameId, onGameStateChange }) => {
+const GameBoard = ({ gameId, onGameStateChange, onMove }) => {
     const renderBoard = () => {
         switch (gameId) {
             case "sudoku": return <SudokuBoard />;
@@ -46,7 +46,7 @@ const GameBoard = ({ gameId, onGameStateChange }) => {
             case "number-recall": return <NumberRecallBoard />;
             case "tic-tac-toe": return <TicTacToeBoard />;
             case "connect-4": return <Connect4Board />;
-            case "chess": return <ChessBoard onGameStateChange={onGameStateChange} />;
+            case "chess": return <ChessBoard onGameStateChange={onGameStateChange} onMove={onMove} />;
             case "reversi": return <ReversiBoard />;
             case "ludo": return <LudoBoard />;
             case "snakes-ladders": return <SnakesLaddersBoard />;

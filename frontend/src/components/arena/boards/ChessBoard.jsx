@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, Component } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, useImperativeHandle, forwardRef, Component } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw, ArrowLeft } from "lucide-react";
 import { Chess } from "chess.js";
@@ -156,7 +156,7 @@ const ChessPiece = ({ type, color, isActive }) => {
 };
 
 // --- Main Component ---
-const ChessBoard = ({ onGameStateChange }) => {
+const ChessBoard = ({ onGameStateChange, onMove }) => {
     const location = useLocation();
     const { socket } = useSocket();
 
@@ -167,6 +167,8 @@ const ChessBoard = ({ onGameStateChange }) => {
     useEffect(() => {
         onGameStateChange?.(gameMode);
     }, [gameMode, onGameStateChange]);
+
+
 
     const [roomId, setRoomId] = useState(location.state?.roomId || null);
     const [players, setPlayers] = useState(location.state?.players || {});
@@ -188,20 +190,21 @@ const ChessBoard = ({ onGameStateChange }) => {
         return false;
     }, [gameMode, players, socket]);
 
-    const [game, setGame] = useState(() => {
-        try {
-            return new Chess();
-        } catch (e) {
-            console.error("Failed to initialize chess.js", e);
-            return null;
-        }
-    });
-    const [board, setBoard] = useState(game ? game.board() : []);
+    // Use Ref for persistent game instance (preserves history)
+    const chessRef = useRef(new Chess());
+
+    // UI State
+    const [fen, setFen] = useState("start");
+    const [board, setBoard] = useState(chessRef.current.board());
     const [selected, setSelected] = useState(null);
     const [lastMove, setLastMove] = useState(null);
     const [capturedPieces, setCapturedPieces] = useState({ w: [], b: [] });
-    // Force re-render on game updates
-    const [fen, setFen] = useState(game ? game.fen() : "");
+
+    const updateGameState = useCallback(() => {
+        setFen(chessRef.current.fen());
+        setBoard(chessRef.current.board());
+        if (onMove) onMove(chessRef.current.history());
+    }, [onMove]);
 
     const [engine, setEngine] = useState(null);
 
@@ -223,29 +226,20 @@ const ChessBoard = ({ onGameStateChange }) => {
                         if (move) {
                             const from = move.substring(0, 2);
                             const to = move.substring(2, 4);
-                            const promotion = move.length > 4 ? move.substring(4, 5) : "q"; // Default promotion to queen for simplicity if engine wants it
+                            const promotion = move.length > 4 ? move.substring(4, 5) : "q";
 
-                            // Apply move safely
-                            setGame(g => {
-                                const newGame = new Chess(g.fen());
-                                try {
-                                    newGame.move({ from, to, promotion });
-                                    setFen(newGame.fen());
-                                    setBoard(newGame.board());
+                            try {
+                                chessRef.current.move({ from, to, promotion });
+                                updateGameState();
 
-                                    // Highlight move
-                                    const fromRow = 8 - parseInt(from[1]);
-                                    const fromCol = from.charCodeAt(0) - 97;
-                                    const toRow = 8 - parseInt(to[1]);
-                                    const toCol = to.charCodeAt(0) - 97;
-                                    setLastMove({ from: [fromRow, fromCol], to: [toRow, toCol] });
-
-                                    // Capture sound could trigger here
-                                } catch (e) {
-                                    console.error("Invalid engine move", move, e);
-                                }
-                                return newGame;
-                            });
+                                const fromRow = 8 - parseInt(from[1]);
+                                const fromCol = from.charCodeAt(0) - 97;
+                                const toRow = 8 - parseInt(to[1]);
+                                const toCol = to.charCodeAt(0) - 97;
+                                setLastMove({ from: [fromRow, fromCol], to: [toRow, toCol] });
+                            } catch (e) {
+                                console.error("Invalid engine move", move, e);
+                            }
                         }
                     }
                 };
@@ -255,10 +249,11 @@ const ChessBoard = ({ onGameStateChange }) => {
                 console.error("Stockfish init failed", e);
             }
         }
-    }, [gameMode]);
+    }, [gameMode, updateGameState]);
 
     // Trigger AI move
     useEffect(() => {
+        const game = chessRef.current;
         if (gameMode === 'computer' && game.turn() === 'b' && !game.isGameOver() && engine) {
             // Small delay for realism
             const timer = setTimeout(() => {
@@ -278,17 +273,19 @@ const ChessBoard = ({ onGameStateChange }) => {
 
         const handleOpponentMove = ({ move, fen }) => {
             console.log("Opponent moved:", move);
-            setGame(g => {
-                const newGame = new Chess(fen); // Sync with trusted FEN or apply move?
-                // Using FEN is safer for state sync, but move animation needs 'from'/'to'.
-                // If we use FEN, we might lose last move highlight info unless sent.
-                // For now, let's just set from FEN.
-                setFen(fen);
-                setBoard(newGame.board());
-                setLastMove(null); // Or calculate from diff?
-                return newGame;
-            });
-            // Update turn indicator etc.
+            try {
+                if (move) {
+                    chessRef.current.move(move);
+                } else {
+                    chessRef.current.load(fen);
+                }
+                updateGameState();
+                setLastMove(null);
+            } catch (e) {
+                console.error("Opponent move sync error", e);
+                chessRef.current.load(fen);
+                updateGameState();
+            }
         };
 
         socket.on('opponent_move', handleOpponentMove);
@@ -296,13 +293,13 @@ const ChessBoard = ({ onGameStateChange }) => {
         return () => {
             socket.off('opponent_move', handleOpponentMove);
         };
-    }, [socket, roomId]);
+    }, [socket, roomId, updateGameState]);
 
 
 
     const validMoves = useMemo(() => {
         if (!selected) return [];
-        const moves = game.moves({
+        const moves = chessRef.current.moves({
             square: String.fromCharCode(97 + selected.col) + (8 - selected.row),
             verbose: true
         });
@@ -315,6 +312,7 @@ const ChessBoard = ({ onGameStateChange }) => {
 
     const handleSquareClick = (row, col) => {
         if (!gameMode) return;
+        const game = chessRef.current; // Alias for easier reading
 
         // Prevent moving if it's computer's turn in vs computer mode
         if (gameMode === 'computer' && game.turn() === 'b') return;
@@ -344,12 +342,11 @@ const ChessBoard = ({ onGameStateChange }) => {
                 const move = game.move({
                     from: fromSquare,
                     to: toSquare,
-                    promotion: 'q' // Always promote to queen for simplicity for now
+                    promotion: 'q'
                 });
 
                 if (move) {
-                    setBoard(game.board());
-                    setFen(game.fen());
+                    updateGameState(); // Sync UI
                     setLastMove({ from: [selected.row, selected.col], to: [row, col] });
                     setSelected(null);
 
@@ -369,7 +366,6 @@ const ChessBoard = ({ onGameStateChange }) => {
             } catch (e) {
                 // Invalid move
                 if (piece && piece.color === game.turn()) {
-                    // Clicked another own piece instead
                     setSelected({ row, col });
                 } else {
                     setSelected(null);
@@ -379,10 +375,8 @@ const ChessBoard = ({ onGameStateChange }) => {
     };
 
     const resetGame = () => {
-        const newGame = new Chess();
-        setGame(newGame);
-        setBoard(newGame.board());
-        setFen(newGame.fen());
+        chessRef.current.reset();
+        updateGameState();
         setSelected(null);
         setLastMove(null);
         setCapturedPieces({ w: [], b: [] });
@@ -392,6 +386,8 @@ const ChessBoard = ({ onGameStateChange }) => {
         setGameMode(mode);
         resetGame();
     };
+
+    const game = chessRef.current;
 
     if (!game) {
         return <div className="text-red-500 text-center p-4">Error loading chess engine. Please refresh.</div>;
@@ -567,20 +563,7 @@ const ChessBoard = ({ onGameStateChange }) => {
                 </div>
             )}
 
-            {/* Controls */}
-            {gameMode !== 'friend' && (
-                <div className="mt-4">
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={resetGame}
-                        className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all text-sm font-medium tracking-wide"
-                    >
-                        <RotateCcw className="w-4 h-4" />
-                        RESET BOARD
-                    </motion.button>
-                </div>
-            )}
+
         </motion.div>
     );
 };

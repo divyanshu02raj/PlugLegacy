@@ -1,7 +1,15 @@
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { History, Trophy, Zap, Clock, Target, Users } from "lucide-react";
 
 const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
+    const scrollRef = useRef(null);
+
+    // Auto-scroll to bottom
+    useEffect(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [moves]);
+
     // Calculate Stats
     const totalGames = (user?.wins || 0) + (user?.losses || 0);
     const winRate = totalGames > 0 ? Math.round((user?.wins / totalGames) * 100) : 0;
@@ -21,7 +29,7 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
             className="h-full flex flex-col gap-4"
         >
             {/* Match Info Card */}
-            <div className="glass-card rounded-2xl border border-glass-border p-4">
+            <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0">
                 <div className="flex items-center gap-2 mb-4">
                     <Users className="w-5 h-5 text-primary" />
                     <h3 className="font-bold">Match Info</h3>
@@ -36,7 +44,7 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
             </div>
 
             {/* Your Stats */}
-            <div className="glass-card rounded-2xl border border-glass-border p-4">
+            <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0">
                 <h3 className="font-bold mb-4 flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-yellow-400" />
                     Your Stats
@@ -54,26 +62,58 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
             </div>
 
             {/* Move History */}
-            <div className="flex-1 glass-card rounded-2xl border border-glass-border p-4 overflow-hidden flex flex-col">
+            <div className="flex-1 min-h-0 glass-card rounded-2xl border border-glass-border p-4 overflow-hidden flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                     <History className="w-5 h-5 text-primary" />
                     <h3 className="font-bold">Move History</h3>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-glass-border">
-                    {moves.length > 0 ? moves.map((move, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/10"
-                        >
-                            <span className="w-6 h-6 rounded-lg bg-obsidian flex items-center justify-center text-xs font-bold">
-                                {index + 1}
-                            </span>
-                            <span className="flex-1 text-sm">{move}</span>
-                        </motion.div>
-                    )) : (
+                <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-glass-border">
+                    {moves.length > 0 ? (
+                        <div className="space-y-1">
+                            {(() => {
+                                const rows = [];
+                                for (let i = 0; i < moves.length; i += 2) {
+                                    rows.push({
+                                        turn: Math.floor(i / 2) + 1,
+                                        white: moves[i],
+                                        black: moves[i + 1]
+                                    });
+                                }
+                                return rows.map((row, i) => (
+                                    <motion.div
+                                        key={row.turn}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.05 }}
+                                        className="grid grid-cols-[24px_1fr_1fr] gap-2 items-center py-1"
+                                    >
+                                        {/* Turn Number */}
+                                        <span className="text-xs text-muted-foreground font-mono opacity-50">
+                                            {row.turn}.
+                                        </span>
+
+                                        {/* White Move */}
+                                        <div className="flex justify-start">
+                                            <span className="px-3 py-1 rounded-full bg-white text-black text-xs font-bold shadow-sm min-w-[3rem] text-center">
+                                                {row.white}
+                                            </span>
+                                        </div>
+
+                                        {/* Black Move */}
+                                        <div className="flex justify-end">
+                                            {row.black && (
+                                                <span className="px-3 py-1 rounded-full bg-black text-white text-xs font-bold border border-white/20 shadow-sm min-w-[3rem] text-center">
+                                                    {row.black}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                ));
+                            })()}
+                            <div ref={scrollRef} />
+                        </div>
+                    ) : (
                         <div className="text-center text-muted-foreground py-8">
                             <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                             <p className="text-sm">No moves yet</p>

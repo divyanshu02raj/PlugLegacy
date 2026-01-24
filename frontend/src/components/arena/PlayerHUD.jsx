@@ -72,7 +72,7 @@ const PlayerHUD = ({
             initial={{ opacity: 0, y: position === "top" ? -20 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className={`relative ${position === "top" ? "mb-4" : "mt-4"}`}
+            className={`relative ${position === "top" ? "mb-4" : "mt-2"}`}
         >
             {/* Main HUD Bar */}
             <motion.div

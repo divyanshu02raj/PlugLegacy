@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, MessageCircle, ShieldAlert } from "lucide-react";
 
 const QUICK_EMOTES = ["😂", "😮", "😡", "👏", "🔥", "💀"];
 
 const GameChat = ({ isDisabled = false, onlineCount = 1 }) => {
+    const scrollRef = useRef(null);
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
+
+    // Auto-scroll
+    useEffect(() => {
+        scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     const sendMessage = (text) => {
         if (!text.trim()) return;
@@ -61,7 +67,7 @@ const GameChat = ({ isDisabled = false, onlineCount = 1 }) => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-glass-border">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-glass-border">
                 <AnimatePresence initial={false}>
                     {messages.map((msg, index) => (
                         <motion.div
@@ -92,6 +98,7 @@ const GameChat = ({ isDisabled = false, onlineCount = 1 }) => {
                         </motion.div>
                     ))}
                 </AnimatePresence>
+                <div ref={scrollRef} />
             </div>
 
             {/* Quick Emotes */}

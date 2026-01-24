@@ -50,6 +50,7 @@ const GameArena = () => {
     // Game Active Mode (state from child board)
     const [activeGameMode, setActiveGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
     const isGameActive = !!activeGameMode;
+    const [moves, setMoves] = useState([]);
 
     const game = gameInfo[gameId || ""] || { name: "Tic-Tac-Toe", icon: "❌", color: "hsl(210 90% 55%)" };
 
@@ -196,7 +197,7 @@ const GameArena = () => {
 
                                 {/* Game Board */}
                                 <div className="flex-1 flex items-center justify-center py-4 overflow-auto">
-                                    <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} />
+                                    <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} onMove={setMoves} />
                                 </div>
 
                                 {/* Player HUD */}
@@ -237,7 +238,7 @@ const GameArena = () => {
                                 <GameInfoPanel
                                     user={me}
                                     gameMode={activeGameMode}
-                                    moves={[]}
+                                    moves={moves}
                                 />
 
                                 {/* Center - Board Area */}
@@ -254,8 +255,8 @@ const GameArena = () => {
                                     )}
 
                                     {/* Game Board */}
-                                    <div className="flex-1 flex items-center justify-center overflow-auto">
-                                        <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} />
+                                    <div className="flex-1 min-h-0 flex items-center justify-center overflow-auto">
+                                        <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} onMove={setMoves} />
                                     </div>
 
                                     {/* Player HUD */}
@@ -274,7 +275,6 @@ const GameArena = () => {
                                             onToggleMute={setIsCallMuted}
                                             onToggleVideo={setIsLocalVideoOn}
                                             hideMedia={activeGameMode === 'computer'}
-                                            hideActions={activeGameMode === 'computer'}
                                         />
                                     )}
                                 </div>
