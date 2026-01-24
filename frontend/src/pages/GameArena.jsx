@@ -425,6 +425,7 @@ const GameArena = () => {
                                 <GameChat
                                     isDisabled={activeGameMode !== 'friend'}
                                     onlineCount={Object.keys(players || {}).length || 1}
+                                    roomId={location.state?.roomId}
                                 />
                             </div>
                         )}

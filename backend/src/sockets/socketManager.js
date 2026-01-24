@@ -180,6 +180,18 @@ module.exports = (io) => {
             socket.to(roomId).emit('opponent_move', { move, fen });
         });
 
+        // --- CHAT ---
+        socket.on('game_chat_message', ({ roomId, message, username, avatar }) => {
+            io.to(roomId).emit('game_chat_message', {
+                id: Date.now().toString(),
+                senderId: socket.id,
+                username,
+                avatar,
+                message,
+                timestamp: new Date()
+            });
+        });
+
         // --- CLEANUP ---
         socket.on('disconnect', async () => {
             // Find userId from socketId

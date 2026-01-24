@@ -1,32 +1,74 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, MessageCircle, ShieldAlert } from "lucide-react";
+import { useSocket } from "@/context/SocketContext";
 
 const QUICK_EMOTES = ["😂", "😮", "😡", "👏", "🔥", "💀"];
 
-const GameChat = ({ isDisabled = false, onlineCount = 1 }) => {
+const GameChat = ({ isDisabled = false, onlineCount = 1, roomId }) => {
     const scrollRef = useRef(null);
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
+    const { socket } = useSocket();
+
+    // Get user info from local storage for avatar/name
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const myUsername = user.username || "You";
+    const myAvatar = user.avatar || "👤"; // Should map this properly if it's a name like "robot_1"
 
     // Auto-scroll
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // Socket Listener
+    useEffect(() => {
+        if (!socket || !roomId) return;
+
+        const handleIncomingMessage = (msg) => {
+            // Check if message is from self to avoid duplication if we optimized locally, 
+            // but backend broadcasts to everyone including sender usually (or we can filter).
+            // In socketManager I used io.to(roomId), so sender receives it to.
+            // So we don't need to add it locally in sendMessage AND receive it.
+            // Let's rely on server echo for consistency or handle local optimistic update.
+            // Current socketManager emits to room.
+
+            setMessages(prev => {
+                // simple dedup check just in case
+                if (prev.some(m => m.id === msg.id)) return prev;
+
+                return [...prev, {
+                    ...msg,
+                    isPlayer: msg.senderId === socket.id // Determine if it's me
+                }];
+            });
+        };
+
+        socket.on('game_chat_message', handleIncomingMessage);
+
+        return () => {
+            socket.off('game_chat_message', handleIncomingMessage);
+        };
+    }, [socket, roomId]);
+
     const sendMessage = (text) => {
         if (!text.trim()) return;
 
-        const newMessage = {
-            id: Date.now().toString(),
-            username: "You",
-            avatar: "🎮",
-            message: text,
-            isPlayer: true,
-            timestamp: new Date(),
-        };
+        if (isDisabled || !roomId || !socket) {
+            // Local fallback for testing/offline or just ignore?
+            // If disabled, we shouldn't be here.
+            // If no room, maybe just local echo?
+            return;
+        }
 
-        setMessages(prev => [...prev, newMessage]);
+        // Emit to server
+        socket.emit('game_chat_message', {
+            roomId,
+            message: text,
+            username: myUsername,
+            avatar: "👤" // sending generic emoji for now as avatar rendering in chat uses emoji
+        });
+
         setInputValue("");
     };
 
