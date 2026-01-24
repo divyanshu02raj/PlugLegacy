@@ -156,14 +156,30 @@ const ChessPiece = ({ type, color, isActive }) => {
 };
 
 // --- Main Component ---
-const ChessBoard = () => {
+const ChessBoard = ({ onGameStateChange }) => {
     const location = useLocation();
     const { socket } = useSocket();
 
     // Game Modes: null (selection), 'computer', 'stranger', 'friend'
     const [gameMode, setGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
+
+    // Notify parent about game state (for HUD visibility)
+    useEffect(() => {
+        onGameStateChange?.(gameMode);
+    }, [gameMode, onGameStateChange]);
+
     const [roomId, setRoomId] = useState(location.state?.roomId || null);
     const [players, setPlayers] = useState(location.state?.players || {});
+
+    // React to navigation/invite updates while mounted
+    useEffect(() => {
+        if (location.state?.multiplayer && location.state?.roomId) {
+            console.log("Joined multiplayer game from navigation:", location.state.roomId);
+            setGameMode('friend');
+            setRoomId(location.state.roomId);
+            setPlayers(location.state.players || {});
+        }
+    }, [location.state]);
 
     const isFlipped = useMemo(() => {
         if (gameMode === 'friend' && socket?.id) {
@@ -397,14 +413,16 @@ const ChessBoard = () => {
             className="w-full max-w-[420px] mx-auto flex flex-col items-center"
         >
             {/* Back to Selection */}
-            <div className="w-full text-left mb-2">
-                <button
-                    onClick={() => setGameMode(null)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft className="w-3 h-3" /> Back to Modes
-                </button>
-            </div>
+            {gameMode !== 'friend' && gameMode !== 'computer' && (
+                <div className="w-full text-left mb-2">
+                    <button
+                        onClick={() => setGameMode(null)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="w-3 h-3" /> Back to Modes
+                    </button>
+                </div>
+            )}
 
             {/* Graveyard (Opponent - White Captured) */}
             <div className="w-full mb-2 flex justify-between items-end px-2">
@@ -550,25 +568,27 @@ const ChessBoard = () => {
             )}
 
             {/* Controls */}
-            <div className="mt-4">
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={resetGame}
-                    className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all text-sm font-medium tracking-wide"
-                >
-                    <RotateCcw className="w-4 h-4" />
-                    RESET BOARD
-                </motion.button>
-            </div>
+            {gameMode !== 'friend' && (
+                <div className="mt-4">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={resetGame}
+                        className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all text-sm font-medium tracking-wide"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        RESET BOARD
+                    </motion.button>
+                </div>
+            )}
         </motion.div>
     );
 };
 
 // Wrap with ErrorBoundary for safety
-const SafeChessBoard = () => (
+const SafeChessBoard = (props) => (
     <ErrorBoundary>
-        <ChessBoard />
+        <ChessBoard {...props} />
     </ErrorBoundary>
 );
 

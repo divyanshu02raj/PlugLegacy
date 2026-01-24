@@ -4,14 +4,8 @@ import { Send, MessageCircle, ShieldAlert } from "lucide-react";
 
 const QUICK_EMOTES = ["😂", "😮", "😡", "👏", "🔥", "💀"];
 
-const MOCK_MESSAGES = [
-    { id: "1", username: "You", avatar: "🎮", message: "Good luck!", isPlayer: true, timestamp: new Date() },
-    { id: "2", username: "ProPlayer99", avatar: "🤖", message: "Thanks, you too!", isPlayer: false, timestamp: new Date() },
-    { id: "3", username: "ProPlayer99", avatar: "🤖", message: "Nice move! 👏", isPlayer: false, timestamp: new Date() },
-];
-
-const GameChat = () => {
-    const [messages, setMessages] = useState(MOCK_MESSAGES);
+const GameChat = ({ isDisabled = false, onlineCount = 1 }) => {
+    const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState("");
 
     const sendMessage = (text) => {
@@ -39,15 +33,22 @@ const GameChat = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="h-full flex flex-col glass-card rounded-2xl border border-glass-border overflow-hidden"
+            className="h-full flex flex-col glass-card rounded-2xl border border-glass-border overflow-hidden relative"
         >
+            {isDisabled && (
+                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-6">
+                    <ShieldAlert className="w-12 h-12 text-muted-foreground mb-3 opacity-50" />
+                    <h3 className="font-bold text-muted-foreground">Chat Unavailable</h3>
+                    <p className="text-sm text-muted-foreground/60 mt-1">Chat is only available in Multiplayer matches.</p>
+                </div>
+            )}
             {/* Header */}
             <div className="px-4 py-3 border-b border-glass-border flex items-center gap-2">
                 <MessageCircle className="w-5 h-5 text-primary" />
                 <h3 className="font-bold">Live Chat</h3>
                 <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    2 online
+                    {onlineCount} online
                 </span>
             </div>
 

@@ -103,15 +103,20 @@ module.exports = (io) => {
         });
 
         // Recipient Responds (Accept/Decline)
-        socket.on('respond_game_invite', ({ accepted, toSocketId, gameType }) => {
-            console.log(`[DEBUG] respond_game_invite: accepted=${accepted}, to=${toSocketId}, game=${gameType}`);
+        // Recipient Responds (Accept/Decline)
+        socket.on('respond_game_invite', async ({ accepted, toSocketId, toUserId, gameType }) => {
+            console.log(`[DEBUG] respond_game_invite: accepted=${accepted}, toUser=${toUserId}, socket=${toSocketId}`);
             if (accepted) {
                 const roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                const senderSocket = io.sockets.sockets.get(toSocketId);
-                const recipientSocket = socket;
 
-                console.log(`[DEBUG] Sender Socket found: ${!!senderSocket} (${toSocketId})`);
-                console.log(`[DEBUG] Recipient Socket: ${socket.id}`);
+                // Resolve Sender Socket (Robust Lookup)
+                let senderSocket = io.sockets.sockets.get(toSocketId);
+                if (!senderSocket && toUserId) {
+                    const newSocketId = onlineUsers.get(toUserId);
+                    if (newSocketId) senderSocket = io.sockets.sockets.get(newSocketId);
+                }
+
+                const recipientSocket = socket;
 
                 if (senderSocket && recipientSocket) {
                     senderSocket.join(roomId);
@@ -119,28 +124,48 @@ module.exports = (io) => {
 
                     // Assign colors randomly
                     const whitePlayer = Math.random() > 0.5 ? senderSocket.id : recipientSocket.id;
-                    const blackPlayer = whitePlayer === senderSocket.id ? recipientSocket.id : senderSocket.id;
 
-                    const gameStartData = {
-                        roomId,
-                        gameType,
-                        whitePlayerId: whitePlayer === senderSocket.id ? 'sender' : 'recipient', // This might be ambiguous for client
-                        // Better: send actual UserIDs or SocketIDs as white/black identifiers?
-                        // For now keep existing, but log it.
-                        players: {
-                            [senderSocket.id]: { color: whitePlayer === senderSocket.id ? 'w' : 'b' },
-                            [recipientSocket.id]: { color: whitePlayer === recipientSocket.id ? 'w' : 'b' }
-                        }
-                    };
+                    // Fetch User Details to send to clients
+                    try {
+                        const getUserIdFromMap = (sid) => [...onlineUsers.entries()].find(([k, v]) => v === sid)?.[0];
 
-                    console.log(`[DEBUG] Emitting game_start to room ${roomId}:`, JSON.stringify(gameStartData));
-                    io.to(roomId).emit('game_start', gameStartData);
-                    console.log(`Game started in room ${roomId}`);
+                        const senderUserIdResolved = toUserId || getUserIdFromMap(senderSocket.id);
+                        const recipientUserId = getUserIdFromMap(recipientSocket.id);
+
+                        const senderUser = senderUserIdResolved ? await User.findById(senderUserIdResolved).select('username avatar elo') : null;
+                        const recipientUser = recipientUserId ? await User.findById(recipientUserId).select('username avatar elo') : null;
+
+                        const gameStartData = {
+                            roomId,
+                            gameType,
+                            whitePlayerId: whitePlayer === senderSocket.id ? 'sender' : 'recipient',
+                            players: {
+                                [senderSocket.id]: {
+                                    color: whitePlayer === senderSocket.id ? 'w' : 'b',
+                                    username: senderUser?.username || "Opponent",
+                                    avatar: senderUser?.avatar || "bot",
+                                    elo: senderUser?.elo
+                                },
+                                [recipientSocket.id]: {
+                                    color: whitePlayer === recipientSocket.id ? 'w' : 'b',
+                                    username: recipientUser?.username || "You",
+                                    avatar: recipientUser?.avatar || "bot",
+                                    elo: recipientUser?.elo
+                                }
+                            }
+                        };
+
+                        console.log(`[DEBUG] Emitting game_start to room ${roomId}:`, JSON.stringify(gameStartData));
+                        io.to(roomId).emit('game_start', gameStartData);
+                        console.log(`Game started in room ${roomId}`);
+
+                    } catch (err) {
+                        console.error("Error fetching users for game start:", err);
+                    }
                 } else {
                     console.error("[DEBUG] Failed to start game: Sender or Recipient socket missing.");
                 }
             } else {
-                // Decline logic can be added here
                 console.log(`[DEBUG] Invite declined.`);
             }
         });

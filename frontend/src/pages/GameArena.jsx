@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Maximize2, Volume2, VolumeX } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useSocket } from "@/context/SocketContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import logo from "@/assets/logo.png";
 import PlayerHUD from "@/components/arena/PlayerHUD";
@@ -39,12 +40,30 @@ const gameInfo = {
 const GameArena = () => {
     const { gameId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const { socket } = useSocket();
     const isMobile = useIsMobile();
     const [isMuted, setIsMuted] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeDrawerTab, setActiveDrawerTab] = useState("chat");
 
+    // Game Active Mode (state from child board)
+    const [activeGameMode, setActiveGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
+    const isGameActive = !!activeGameMode;
+
     const game = gameInfo[gameId || ""] || { name: "Tic-Tac-Toe", icon: "❌", color: "hsl(210 90% 55%)" };
+
+    // Player Data
+    const { players } = location.state || {};
+    const myId = socket?.id;
+    const opponentId = Object.keys(players || {}).find(id => id !== myId);
+
+    const me = players?.[myId] || { username: "You", avatar: "👤", score: 0 };
+
+    let opponent = players?.[opponentId] || { username: "Waiting...", avatar: "⏳", score: 0 };
+    if (activeGameMode === 'computer') {
+        opponent = { username: "Stockfish AI", avatar: "🤖", score: 0 };
+    }
 
     // Mock data
     const isPlayerTurn = true;
@@ -158,36 +177,40 @@ const GameArena = () => {
                             /* Mobile Layout */
                             <div className="h-full flex flex-col">
                                 {/* Opponent HUD */}
-                                <PlayerHUD
-                                    position="top"
-                                    username="ProPlayer99"
-                                    avatar="🤖"
-                                    time="2:45"
-                                    isActive={!isPlayerTurn}
-                                    score={1}
-                                />
+                                {isGameActive && (
+                                    <PlayerHUD
+                                        position="top"
+                                        username={opponent.username}
+                                        avatar={opponent.avatar}
+                                        isActive={!isPlayerTurn}
+                                        score={opponent.score || 0}
+                                    />
+                                )}
 
                                 {/* Game Board */}
                                 <div className="flex-1 flex items-center justify-center py-4 overflow-auto">
-                                    <GameBoard gameId={gameId} />
+                                    <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} />
                                 </div>
 
                                 {/* Player HUD */}
-                                <PlayerHUD
-                                    position="bottom"
-                                    username="You"
-                                    avatar="🎮"
-                                    time="2:52"
-                                    isActive={isPlayerTurn}
-                                    score={1}
-                                    isFriend={true}
-                                    isCallActive={isCallActive}
-                                    isCallMuted={isCallMuted}
-                                    isLocalVideoOn={isLocalVideoOn}
-                                    onStartCall={handleStartCall}
-                                    onToggleMute={setIsCallMuted}
-                                    onToggleVideo={setIsLocalVideoOn}
-                                />
+                                {isGameActive && (
+                                    <PlayerHUD
+                                        position="bottom"
+                                        username={me.username}
+                                        avatar={me.avatar}
+                                        isActive={isPlayerTurn}
+                                        score={me.score || 0}
+                                        isFriend={true}
+                                        isCallActive={isCallActive}
+                                        isCallMuted={isCallMuted}
+                                        isLocalVideoOn={isLocalVideoOn}
+                                        onStartCall={handleStartCall}
+                                        onToggleMute={setIsCallMuted}
+                                        onToggleVideo={setIsLocalVideoOn}
+                                        hideMedia={activeGameMode === 'computer'}
+                                        hideActions={activeGameMode === 'computer'}
+                                    />
+                                )}
 
                                 {/* Mobile Menu Button */}
                                 <MobileMenuButton onClick={() => setIsDrawerOpen(true)} />
@@ -204,45 +227,56 @@ const GameArena = () => {
                             /* Desktop Layout - Three Columns */
                             <div className="h-full grid grid-cols-[280px_1fr_320px] gap-6">
                                 {/* Left - Game Info Panel */}
-                                <GameInfoPanel />
+                                <GameInfoPanel
+                                    user={me}
+                                    gameMode={activeGameMode}
+                                    moves={[]}
+                                />
 
                                 {/* Center - Board Area */}
                                 <div className="flex flex-col">
                                     {/* Opponent HUD */}
-                                    <PlayerHUD
-                                        position="top"
-                                        username="ProPlayer99"
-                                        avatar="🤖"
-                                        time="2:45"
-                                        isActive={!isPlayerTurn}
-                                        score={1}
-                                    />
+                                    {isGameActive && (
+                                        <PlayerHUD
+                                            position="top"
+                                            username={opponent.username}
+                                            avatar={opponent.avatar}
+                                            isActive={!isPlayerTurn}
+                                            score={opponent.score || 0}
+                                        />
+                                    )}
 
                                     {/* Game Board */}
                                     <div className="flex-1 flex items-center justify-center overflow-auto">
-                                        <GameBoard gameId={gameId} />
+                                        <GameBoard gameId={gameId} onGameStateChange={setActiveGameMode} />
                                     </div>
 
                                     {/* Player HUD */}
-                                    <PlayerHUD
-                                        position="bottom"
-                                        username="You"
-                                        avatar="🎮"
-                                        time="2:52"
-                                        isActive={isPlayerTurn}
-                                        score={1}
-                                        isFriend={true}
-                                        isCallActive={isCallActive}
-                                        isCallMuted={isCallMuted}
-                                        isLocalVideoOn={isLocalVideoOn}
-                                        onStartCall={handleStartCall}
-                                        onToggleMute={setIsCallMuted}
-                                        onToggleVideo={setIsLocalVideoOn}
-                                    />
+                                    {isGameActive && (
+                                        <PlayerHUD
+                                            position="bottom"
+                                            username={me.username}
+                                            avatar={me.avatar}
+                                            isActive={isPlayerTurn}
+                                            score={me.score || 0}
+                                            isFriend={true}
+                                            isCallActive={isCallActive}
+                                            isCallMuted={isCallMuted}
+                                            isLocalVideoOn={isLocalVideoOn}
+                                            onStartCall={handleStartCall}
+                                            onToggleMute={setIsCallMuted}
+                                            onToggleVideo={setIsLocalVideoOn}
+                                            hideMedia={activeGameMode === 'computer'}
+                                            hideActions={activeGameMode === 'computer'}
+                                        />
+                                    )}
                                 </div>
 
                                 {/* Right - Chat Sidebar */}
-                                <GameChat />
+                                <GameChat
+                                    isDisabled={activeGameMode !== 'friend'}
+                                    onlineCount={Object.keys(players || {}).length || 1}
+                                />
                             </div>
                         )}
                     </div>

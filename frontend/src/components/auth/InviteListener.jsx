@@ -12,7 +12,7 @@ const InviteListener = () => {
 
         // --- INVITE RECEIVED ---
         const handleInvite = (data) => {
-            const { fromUsername, gameType, socketId } = data; // socketId needed to reply
+            const { fromUsername, gameType, socketId, fromUserId } = data;
 
             toast(`${fromUsername} invited you to play ${gameType}!`, {
                 action: {
@@ -20,7 +20,8 @@ const InviteListener = () => {
                     onClick: () => {
                         socket.emit('respond_game_invite', {
                             accepted: true,
-                            toSocketId: socketId,
+                            toSocketId: socketId, // Fallback
+                            toUserId: fromUserId, // Specific User Target (Robust)
                             gameType
                         });
                         toast.dismiss();

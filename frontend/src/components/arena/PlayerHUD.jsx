@@ -2,12 +2,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Flag, Handshake, Settings, Mic, MicOff, Video, VideoOff, Lock, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AVATARS } from "../../constants/avatars";
 
 const PlayerHUD = ({
     position, username, avatar, time, isActive,
     score = 0, isFriend = false,
     isCallActive = false, isCallMuted = false, isLocalVideoOn = false,
-    onStartCall, onToggleMute, onToggleVideo
+    onStartCall, onToggleMute, onToggleVideo,
+    hideMedia = false, hideActions = false
 }) => {
     const isPlayer = position === "bottom";
     const { toast } = useToast();
@@ -118,9 +120,13 @@ const PlayerHUD = ({
                             }
             `}
                     >
-                        <span className="text-3xl flex items-center justify-center h-full bg-obsidian-light">
-                            {avatar}
-                        </span>
+                        {(avatar && (avatar.startsWith('http') || avatar.startsWith('/') || avatar.startsWith('data:'))) ? (
+                            <img src={avatar} alt={username} className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-2xl flex items-center justify-center h-full bg-obsidian-light text-foreground font-bold">
+                                {(avatar && avatar.length < 5) ? avatar : (username ? username.charAt(0).toUpperCase() : "👤")}
+                            </span>
+                        )}
                     </motion.div>
 
                     {/* Online Indicator */}
@@ -180,42 +186,45 @@ const PlayerHUD = ({
                     className="flex items-center justify-center gap-6 mt-3"
                 >
                     {/* Media Controls */}
-                    <div className="flex items-center gap-3 pr-6 border-r border-white/10">
-                        <MediaButton
-                            type="mic"
-                            isOn={isCallActive && !isCallMuted}
-                            icon={Mic}
-                            offIcon={MicOff}
-                        />
-                        <MediaButton
-                            type="video"
-                            isOn={isLocalVideoOn}
-                            icon={Video}
-                            offIcon={VideoOff}
-                        />
-                    </div>
+                    {!hideMedia && (
+                        <div className="flex items-center gap-3 pr-6 border-r border-white/10">
+                            <MediaButton
+                                type="mic"
+                                isOn={isCallActive && !isCallMuted}
+                                icon={Mic}
+                                offIcon={MicOff}
+                            />
+                            <MediaButton
+                                type="video"
+                                isOn={isLocalVideoOn}
+                                icon={Video}
+                                offIcon={VideoOff}
+                            />
+                        </div>
+                    )}
 
                     {/* Game Actions */}
-                    <div className="flex items-center gap-3">
-                        {[
-                            { icon: Flag, label: "Resign", color: "text-red-400 hover:bg-red-500/20" },
-                            { icon: Handshake, label: "Offer Draw", color: "text-yellow-400 hover:bg-yellow-500/20" },
-                            { icon: Settings, label: "Settings", color: "text-muted-foreground hover:bg-glass-hover" },
-                        ].map(({ icon: Icon, label, color }) => (
-                            <motion.button
-                                key={label}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={`
-                    flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border
-                    transition-colors duration-200 ${color}
-                  `}
-                            >
-                                <Icon className="w-4 h-4" />
-                                <span className="text-sm font-medium">{label}</span>
-                            </motion.button>
-                        ))}
-                    </div>
+                    {!hideActions && (
+                        <div className="flex items-center gap-3">
+                            {[
+                                { icon: Flag, label: "Resign", color: "text-red-400 hover:bg-red-500/20" },
+                                { icon: Handshake, label: "Offer Draw", color: "text-yellow-400 hover:bg-yellow-500/20" },
+                            ].map(({ icon: Icon, label, color }) => (
+                                <motion.button
+                                    key={label}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className={`
+                        flex items-center gap-2 px-4 py-2 rounded-xl glass-card border border-glass-border
+                        transition-colors duration-200 ${color}
+                      `}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{label}</span>
+                                </motion.button>
+                            ))}
+                        </div>
+                    )}
                 </motion.div>
             )}
         </motion.div>
