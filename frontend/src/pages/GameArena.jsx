@@ -192,17 +192,23 @@ const GameArena = () => {
             // Logic: if draw -> draw. if winner matches my color -> win. else -> loss.
             const matchResult = result.winner === 'Draw' ? 'draw' : (winnerCode === myColor ? 'win' : 'loss');
 
+            // Calculate Bonus
+            let bonus = 0;
+            if (matchResult === 'win') bonus = 60;
+            else if (matchResult === 'draw') bonus = 30;
+
+            const finalScore = scores.player + bonus;
+
             const matchData = {
                 gameId: gameId || 'chess',
                 result: matchResult,
                 opponent: {
                     username: opponent.username,
                     avatar: opponent.avatar,
-                    id: activeGameMode === 'friend' ? opponentId : null
+                    id: activeGameMode === 'friend' ? opponent.userId : null,
+                    score: scores.opponent + (matchResult === 'loss' ? 60 : (matchResult === 'draw' ? 30 : 0)) // Opponent bonus
                 },
-                score: scores.player, // Note: this is session score, not game material score. Material is not passed here easily unless we change prop.
-                // Actually result.reason might have info, or we just rely on win/loss.
-                // For now, let's use 0 or leave it, backend handles win/loss logic mainly.
+                score: finalScore,
                 moves: JSON.stringify(moves),
                 playerColor: myColor,
                 duration: 0
@@ -347,6 +353,8 @@ const GameArena = () => {
                                         onToggleVideo={setIsLocalVideoOn}
                                         hideMedia={activeGameMode === 'computer'}
                                         hideActions={activeGameMode === 'computer'}
+                                        onResign={handleResignClick}
+                                        onDraw={handleOfferDraw}
                                     />
                                 )}
 

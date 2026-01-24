@@ -41,6 +41,7 @@ const Profile = () => {
                         game: (m.gameId || 'chess').charAt(0).toUpperCase() + (m.gameId || 'chess').slice(1),
                         opponent: opponentPlayer?.username || "Opponent",
                         eloChange,
+                        score: myPlayer?.score || 0,
                         time: new Date(m.timestamp).toLocaleDateString()
                     };
                 });
@@ -288,9 +289,10 @@ const Profile = () => {
                                         </div>
                                         <div className="text-right">
                                             <p className={`font-bold ${match.eloChange > 0 ? "text-green-400" : "text-red-400"}`}>
-                                                {match.eloChange > 0 ? "+" : ""}{match.eloChange}
+                                                {match.eloChange > 0 ? "+" : ""}{match.eloChange} Elo
                                             </p>
-                                            <p className="text-xs text-muted-foreground">{match.time}</p>
+                                            <p className="text-xs text-muted-foreground font-mono">{match.score} pts</p>
+                                            <p className="text-[10px] text-muted-foreground/60">{match.time}</p>
                                         </div>
                                     </div>
                                 ))}

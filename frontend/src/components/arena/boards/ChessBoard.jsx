@@ -208,6 +208,15 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                 onGameOver?.(result);
             } else if (roomId && socket) {
                 socket.emit('game_resign', { roomId });
+
+                // Update local state immediately for the resigner
+                const myColor = players[socket.id]?.color || 'w';
+                const result = {
+                    winner: myColor === 'w' ? 'Black' : 'White',
+                    reason: 'Resignation'
+                };
+                setGameOverState(result);
+                onGameOver?.(result);
             }
         },
         offerDraw: () => {
@@ -351,6 +360,17 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
 
     // Draw Offer State
     const [incomingDrawOffer, setIncomingDrawOffer] = useState(false);
+    // Rematch State
+    const [incomingRematchOffer, setIncomingRematchOffer] = useState(false);
+    const [rematchOffered, setRematchOffered] = useState(false);
+    const [rematchDeclined, setRematchDeclined] = useState(false);
+
+    const respondToRematch = (accepted) => {
+        if (roomId && socket) {
+            socket.emit('respond_rematch', { roomId, accepted });
+        }
+        setIncomingRematchOffer(false);
+    };
 
     // Socket Listeners for Multiplayer
     useEffect(() => {
@@ -412,12 +432,56 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
             alert("Opponent declined draw offer."); // Replacing with a simple alert or toast for now
         };
 
+        const handleReceiveRematchOffer = () => {
+            setIncomingRematchOffer(true);
+        };
+
+        const handleRematchRejected = () => {
+            setRematchOffered(false); // Enable button again? Or just show declined.
+            setRematchDeclined(true);
+            // Auto-hide declined message after 3s? Or just leave it.
+            // Leaving it is safer so they see it.
+        };
+
+        const handleGameRestarted = ({ newPlayers }) => {
+            // Update players colors but keep usernames
+            setPlayers(prev => {
+                const updated = { ...prev };
+                Object.keys(newPlayers).forEach(sid => {
+                    if (updated[sid]) {
+                        updated[sid] = { ...updated[sid], color: newPlayers[sid].color };
+                    }
+                });
+                return updated;
+            });
+
+            // Reset Game Logic via internal function (need to ensure it's accessible or duplicate logic)
+            // We can call resetGame(), but we need to ensure local state is cleared
+            chessRef.current.reset();
+            setGameOverState(null);
+            setIncomingDrawOffer(false);
+            setIncomingRematchOffer(false);
+            setRematchOffered(false);
+            setCapturedPieces({ w: [], b: [] });
+            setLastMove(null);
+            setSelected(null);
+            setFen("start");
+            setBoard(chessRef.current.board());
+            // Need to notify parent? onScoreUpdate(0,0)?
+            onScoreUpdate?.({ w: 0, b: 0 });
+        };
+
         socket.on('opponent_move', handleOpponentMove);
         socket.on('game_end', handleGameEnd);
         socket.on('opponent_resigned', handleOpponentResigned);
         socket.on('receive_draw_offer', handleReceiveDrawOffer);
         socket.on('game_draw', handleGameDraw);
         socket.on('draw_offer_rejected', handleDrawRejected);
+
+        // Rematch
+        socket.on('receive_rematch_offer', handleReceiveRematchOffer);
+        socket.on('rematch_rejected', handleRematchRejected);
+        socket.on('game_restarted', handleGameRestarted);
 
         return () => {
             socket.off('opponent_move', handleOpponentMove);
@@ -426,6 +490,10 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
             socket.off('receive_draw_offer', handleReceiveDrawOffer);
             socket.off('game_draw', handleGameDraw);
             socket.off('draw_offer_rejected', handleDrawRejected);
+
+            socket.off('receive_rematch_offer', handleReceiveRematchOffer);
+            socket.off('rematch_rejected', handleRematchRejected);
+            socket.off('game_restarted', handleGameRestarted);
         };
     }, [socket, roomId, updateGameState, onGameOver, players]);
 
@@ -720,6 +788,43 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                 )}
             </AnimatePresence>
 
+            {/* Rematch Offer Modal */}
+            <AnimatePresence>
+                {incomingRematchOffer && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#0f1014] rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl text-center"
+                        >
+                            <h3 className="text-xl font-bold text-white mb-2">Rematch Request</h3>
+                            <p className="text-white/60 mb-6 text-sm">Opponent wants to play again.</p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => respondToRematch(false)}
+                                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+                                >
+                                    Decline
+                                </button>
+                                <button
+                                    onClick={() => respondToRematch(true)}
+                                    className="flex-1 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white font-bold transition-colors"
+                                >
+                                    Accept
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Match Report Overlay */}
             {gameOverState && (
                 <motion.div
@@ -763,10 +868,23 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                         {/* Actions */}
                         <div className="flex flex-col gap-2">
                             <button
-                                onClick={resetGame}
-                                className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                                onClick={() => {
+                                    if (gameMode === 'friend') {
+                                        socket.emit('offer_rematch', { roomId });
+                                        setRematchOffered(true);
+                                        setRematchDeclined(false); // Reset if trying again (if we allowed it)
+                                    } else {
+                                        resetGame();
+                                    }
+                                }}
+                                disabled={rematchOffered || rematchDeclined}
+                                className={`w-full py-3 font-bold rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
+                                    ${rematchDeclined
+                                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                                        : "bg-white text-black hover:bg-gray-200"
+                                    }`}
                             >
-                                Play Again
+                                {rematchDeclined ? "Rematch Declined ❌" : (rematchOffered ? "Rematch Sent... ⏳" : "Play Again")}
                             </button>
                             <button
                                 onClick={() => {

@@ -141,12 +141,14 @@ module.exports = (io) => {
                             whitePlayerId: whitePlayer === senderSocket.id ? 'sender' : 'recipient',
                             players: {
                                 [senderSocket.id]: {
+                                    userId: senderUserIdResolved,
                                     color: whitePlayer === senderSocket.id ? 'w' : 'b',
                                     username: senderUser?.username || "Opponent",
                                     avatar: senderUser?.avatar || "bot",
                                     elo: senderUser?.elo
                                 },
                                 [recipientSocket.id]: {
+                                    userId: recipientUserId,
                                     color: whitePlayer === recipientSocket.id ? 'w' : 'b',
                                     username: recipientUser?.username || "You",
                                     avatar: recipientUser?.avatar || "bot",
@@ -201,6 +203,44 @@ module.exports = (io) => {
             } else {
                 // Draw rejected. Notify sender.
                 socket.to(roomId).emit('draw_offer_rejected');
+            }
+        });
+
+        // --- REMATCH SYSTEM ---
+        socket.on('offer_rematch', ({ roomId }) => {
+            socket.to(roomId).emit('receive_rematch_offer', { fromSocketId: socket.id });
+        });
+
+        socket.on('respond_rematch', ({ roomId, accepted }) => {
+            if (accepted) {
+                // Rematch Accepted - Restart Game
+                // Get all sockets in room to determine players
+                const room = io.sockets.adapter.rooms.get(roomId);
+                if (room && room.size === 2) {
+                    const players = Array.from(room); // [socketId1, socketId2]
+
+                    // Assign new colors (Swap or Random) - Let's Swap for fairness
+                    // We need to know previous colors? 
+                    // Simpler: Just random again or Client sends preference?
+                    // Let's just Randomize again for simplicity, or 
+                    // Client can infer swap. Let's send explicit map.
+
+                    const p1 = players[0];
+                    const p2 = players[1];
+                    const whitePlayer = Math.random() > 0.5 ? p1 : p2;
+
+                    const newPlayers = {
+                        [p1]: { color: p1 === whitePlayer ? 'w' : 'b' },
+                        [p2]: { color: p2 === whitePlayer ? 'w' : 'b' }
+                    };
+
+                    io.to(roomId).emit('game_restarted', {
+                        newPlayers,
+                        roomId
+                    });
+                }
+            } else {
+                socket.to(roomId).emit('rematch_rejected');
             }
         });
 
