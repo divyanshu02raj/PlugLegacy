@@ -634,25 +634,65 @@ const ChessBoard = forwardRef(({ onGameStateChange, onMove, onGameOver, onScoreU
                 </div>
             </div>
 
-            {/* Game Over Message Overlay */}
+            {/* Match Report Overlay */}
             {gameOverState && (
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md rounded-2xl"
                 >
-                    <div className="p-6 rounded-2xl bg-black/80 border border-white/20 shadow-2xl text-center">
-                        <h3 className="text-2xl font-bold text-white mb-2">
-                            {gameOverState.winner === 'Draw' ? "It's a Draw" : `${gameOverState.winner} Wins!`}
-                        </h3>
-                        <p className="text-sm text-white/60 mb-4">{gameOverState.reason}</p>
-                        <button
-                            onClick={resetGame}
-                            className="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                            Play Again
-                        </button>
-                    </div>
+                    <motion.div
+                        initial={{ scale: 0.9, y: 20 }}
+                        animate={{ scale: 1, y: 0 }}
+                        className="bg-[#0f1014] p-6 rounded-3xl border border-white/10 shadow-2xl text-center max-w-[320px] w-full mx-4"
+                    >
+                        {/* Result Header */}
+                        <div className="mb-6">
+                            <h2 className="text-3xl font-black text-white mb-2 tracking-tight uppercase">
+                                {gameOverState.winner === 'Draw' ? 'DRAW' : (
+                                    <span className={gameOverState.winner === 'White' ? 'text-white' : 'text-white'}>
+                                        {gameOverState.winner === 'White' ? 'WHITE' : 'BLACK'} WINS
+                                    </span>
+                                )}
+                            </h2>
+                            <p className="text-sm text-white/50 font-medium capitalize">{gameOverState.reason}</p>
+                        </div>
+
+                        {/* Scores / Stats */}
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
+                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">White Score</span>
+                                <span className="text-xl font-bold text-white">
+                                    {Object.values(capturedPieces.b).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0)}
+                                </span>
+                            </div>
+                            <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center">
+                                <span className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">Black Score</span>
+                                <span className="text-xl font-bold text-white">
+                                    {Object.values(capturedPieces.w).reduce((acc, p) => acc + PIECE_VALUES[p.type], 0)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={resetGame}
+                                className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                Play Again
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setGameMode(null);
+                                    resetGame();
+                                }}
+                                className="w-full py-3 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 border border-white/10 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                            >
+                                Main Menu
+                            </button>
+                        </div>
+                    </motion.div>
                 </motion.div>
             )}
 

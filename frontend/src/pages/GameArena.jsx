@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Maximize2, Volume2, VolumeX } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
@@ -51,6 +51,14 @@ const GameArena = () => {
     const [activeGameMode, setActiveGameMode] = useState(location.state?.multiplayer ? 'friend' : null);
     const isGameActive = !!activeGameMode;
     const [moves, setMoves] = useState([]);
+
+    // Reset game state when moving between modes or back to menu
+    useEffect(() => {
+        if (!activeGameMode) {
+            setMoves([]);
+            setScores({ player: 0, opponent: 0 });
+        }
+    }, [activeGameMode]);
 
     const game = gameInfo[gameId || ""] || { name: "Tic-Tac-Toe", icon: "❌", color: "hsl(210 90% 55%)" };
 
@@ -297,7 +305,7 @@ const GameArena = () => {
                             </div>
                         ) : (
                             /* Desktop Layout - Three Columns */
-                            <div className="h-full grid grid-cols-[280px_1fr_320px] gap-6">
+                            <div className="h-full grid grid-cols-[280px_minmax(0,1fr)_320px] gap-6">
                                 {/* Left - Game Info Panel */}
                                 <GameInfoPanel
                                     user={me}
@@ -306,7 +314,7 @@ const GameArena = () => {
                                 />
 
                                 {/* Center - Board Area */}
-                                <div className="flex flex-col">
+                                <div className="flex flex-col h-full overflow-hidden">
                                     {/* Opponent HUD */}
                                     {isGameActive && (
                                         <PlayerHUD
