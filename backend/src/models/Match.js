@@ -4,7 +4,7 @@ const matchSchema = new mongoose.Schema({
     gameId: {
         type: String,
         required: true,
-        enum: ['chess', 'sudoku', 'wordle', '2048', 'tic-tac-toe'] // Add other games as needed
+        enum: ['chess', 'sudoku', 'wordle', '2048', 'tic-tac-toe', 'snake'] // Add other games as needed
     },
     players: [{
         userId: {
@@ -17,7 +17,7 @@ const matchSchema = new mongoose.Schema({
         score: Number,
         result: {
             type: String,
-            enum: ['win', 'loss', 'draw', 'abandoned'],
+            enum: ['win', 'loss', 'draw', 'abandoned', 'completed'],
             required: true
         },
         color: String // For Chess (w/b)

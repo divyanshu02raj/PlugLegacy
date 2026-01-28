@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, RotateCcw, Zap } from "lucide-react";
+import { authService, userService } from "../../../services/api";
 
 const GRID_SIZE = 24;
 const CELL_SIZE = 20;
@@ -20,11 +21,30 @@ const SnakeBoard = () => {
     const [hasStarted, setHasStarted] = useState(false);
     const gameLoopRef = useRef();
     const directionRef = useRef(direction);
+    const hasSavedRef = useRef(false);
 
     // Persist High Score
     useEffect(() => {
         localStorage.setItem("snake_high_score", highScore.toString());
     }, [highScore]);
+
+    // Save history on Game Over
+    useEffect(() => {
+        if (gameOver && score > 0 && !hasSavedRef.current) {
+            hasSavedRef.current = true;
+            const user = authService.getCurrentUser();
+            if (user) {
+                userService.saveMatch({
+                    gameId: 'snake',
+                    score: score,
+                    result: 'completed',
+                    opponent: { username: 'Single Player' } // Placeholder to satisfy controller logic
+                }).catch(err => console.error("Failed to save snake score:", err));
+            }
+        } else if (!gameOver) {
+            hasSavedRef.current = false;
+        }
+    }, [gameOver, score]);
 
     const generateFood = useCallback((currentSnake) => {
         let newFood;

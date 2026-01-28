@@ -281,16 +281,25 @@ const Profile = () => {
                                         className="flex items-center justify-between p-3 bg-white/5 rounded-xl"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-2 h-2 rounded-full ${match.result === "win" ? "bg-green-500" : "bg-red-500"}`} />
+                                            <div className={`w-2 h-2 rounded-full ${match.result === "win" ? "bg-green-500" :
+                                                    match.result === "loss" ? "bg-red-500" :
+                                                        "bg-amber-500" // For score-based/draw
+                                                }`} />
                                             <div>
                                                 <p className="font-medium">{match.game}</p>
-                                                <p className="text-xs text-muted-foreground">vs {match.opponent}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {match.opponent === "Opponent" || match.opponent === "Single Player" ? "Single Player" : `vs ${match.opponent}`}
+                                                </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`font-bold ${match.eloChange > 0 ? "text-green-400" : "text-red-400"}`}>
-                                                {match.eloChange > 0 ? "+" : ""}{match.eloChange} Elo
-                                            </p>
+                                            {match.result === "win" || match.result === "loss" ? (
+                                                <p className={`font-bold ${match.eloChange > 0 ? "text-green-400" : "text-red-400"}`}>
+                                                    {match.eloChange > 0 ? "+" : ""}{match.eloChange} Elo
+                                                </p>
+                                            ) : (
+                                                <p className="font-bold text-amber-400">Played</p>
+                                            )}
                                             <p className="text-xs text-muted-foreground font-mono">{match.score} pts</p>
                                             <p className="text-[10px] text-muted-foreground/60">{match.time}</p>
                                         </div>
