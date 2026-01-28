@@ -83,6 +83,9 @@ const GameArena = () => {
         color: myColor === 'w' ? 'b' : 'w'
     };
 
+    // Games that are strictly single-player for now
+    const isSinglePlayerGame = ["snake", "tetris", "2048", "sudoku", "wordle", "memory-match"].includes(gameId);
+
     // Handlers
     const handleGameEnd = (result) => {
         setIsGameActive(false);
@@ -275,7 +278,7 @@ const GameArena = () => {
             </AnimatePresence>
 
             <AnimatePresence>
-                {isCallActive && (
+                {isCallActive && !isSinglePlayerGame && (
                     <VideoOverlay
                         onClose={handleEndCall}
                         isMuted={isCallMuted}
@@ -400,8 +403,8 @@ const GameArena = () => {
                                         onStartCall={handleStartCall}
                                         onToggleMute={setIsCallMuted}
                                         onToggleVideo={setIsLocalVideoOn}
-                                        hideMedia={activeGameMode === 'computer'}
-                                        hideActions={activeGameMode === 'computer'}
+                                        hideMedia={activeGameMode === 'computer' || isSinglePlayerGame}
+                                        hideActions={activeGameMode === 'computer' || isSinglePlayerGame}
                                         onResign={handleResignClick}
                                         onDraw={handleOfferDraw}
                                     />
@@ -471,7 +474,8 @@ const GameArena = () => {
                                             onStartCall={handleStartCall}
                                             onToggleMute={setIsCallMuted}
                                             onToggleVideo={setIsLocalVideoOn}
-                                            hideMedia={activeGameMode === 'computer'}
+                                            hideMedia={activeGameMode === 'computer' || isSinglePlayerGame}
+                                            hideActions={activeGameMode === 'computer' || isSinglePlayerGame}
                                             onResign={handleResignClick}
                                             onDraw={handleOfferDraw}
                                         />
