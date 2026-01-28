@@ -1,5 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import LudoEngine from "../../../utils/LudoEngine";
+import LudoModeSelection from "./ludo/LudoModeSelection";
+import LudoBotSelection from "./ludo/LudoBotSelection";
 
 const COLORS = {
     red: {
@@ -145,7 +148,7 @@ const Token = ({ color, size = "normal", isHighlighted }) => {
 };
 
 // Home Base Component
-const HomeBase = ({ color, tokens = 4 }) => (
+const HomeBase = ({ color, pieces, onPieceClick }) => (
     <div className={`
         w-full h-full rounded-2xl p-2
         bg-gradient-to-br ${COLORS[color].gradient}
@@ -154,14 +157,20 @@ const HomeBase = ({ color, tokens = 4 }) => (
     `}>
         <div className="w-full h-full bg-black/20 rounded-xl p-3 flex items-center justify-center">
             <div className="grid grid-cols-2 gap-3">
-                {[0, 1, 2, 3].map(i => (
-                    <div
-                        key={i}
-                        className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center"
-                    >
-                        {i < tokens && <Token color={color} />}
-                    </div>
-                ))}
+                {[0, 1, 2, 3].map(i => {
+                    const piece = pieces ? pieces[i] : null;
+                    const isInHome = piece && piece.position === -1;
+                    return (
+                        <div
+                            key={i}
+                            onClick={() => isInHome && onPieceClick && onPieceClick(color, i)}
+                            className={`w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center ${isInHome && onPieceClick ? 'cursor-pointer hover:scale-110 transition-transform' : ''
+                                }`}
+                        >
+                            {isInHome && <Token color={color} />}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     </div>
@@ -182,37 +191,171 @@ const PathCell = ({ isColored, color, isSafe, children }) => (
 );
 
 const LudoBoard = () => {
-    const [diceValue, setDiceValue] = useState(1);
+    const [gameMode, setGameMode] = useState(null); // null = show mode selection
+    const [botCount, setBotCount] = useState(null); // null = show bot selection (for computer mode)
+
+    const engineRef = useRef(new LudoEngine());
+    const [gameState, setGameState] = useState(engineRef.current.getGameState());
     const [isRolling, setIsRolling] = useState(false);
-    const [currentPlayer, setCurrentPlayer] = useState("red");
     const [homeGlow, setHomeGlow] = useState(false);
+    const [selectedPiece, setSelectedPiece] = useState(null);
+    const [message, setMessage] = useState("");
+
+    const engine = engineRef.current;
+
+    // Bot AI execution
+    useEffect(() => {
+        const currentPlayer = gameState.currentPlayer;
+        const isBotTurn = ["green", "yellow", "blue"].includes(currentPlayer);
+
+        if (isBotTurn && gameState.diceValue > 0 && !gameState.gameOver) {
+            // Bot makes move after a delay
+            const timeout = setTimeout(() => {
+                const validMoves = engine.getValidMoves(currentPlayer);
+
+                if (validMoves.length === 0) {
+                    // No valid moves, skip turn
+                    engine.nextTurn();
+                    setGameState(engine.getGameState());
+                    setMessage("");
+                } else {
+                    // Bot selects best move
+                    const pieceId = engine.getBotMove(currentPlayer);
+                    const result = engine.movePiece(currentPlayer, pieceId);
+
+                    if (result.success) {
+                        if (result.action === "win") {
+                            setMessage(`${currentPlayer.toUpperCase()} WINS! 🎉`);
+                        } else if (result.action === "capture") {
+                            setMessage(`${currentPlayer} captured a piece!`);
+                        }
+
+                        if (!result.extraTurn) {
+                            engine.nextTurn();
+                        }
+                        setGameState(engine.getGameState());
+                    }
+                }
+            }, 1500);
+
+            return () => clearTimeout(timeout);
+        }
+    }, [gameState.currentPlayer, gameState.diceValue, gameState.gameOver]);
 
     const rollDice = () => {
-        if (isRolling) return;
+        if (isRolling || gameState.currentPlayer !== "red" || gameState.diceValue > 0) return;
+
         setIsRolling(true);
+        setMessage("");
 
         let count = 0;
         const interval = setInterval(() => {
-            setDiceValue(Math.floor(Math.random() * 6) + 1);
             count++;
-            if (count > 15) {
+            if (count > 12) {
                 clearInterval(interval);
-                const finalValue = Math.floor(Math.random() * 6) + 1;
-                setDiceValue(finalValue);
+                const result = engine.rollDice();
                 setIsRolling(false);
 
-                // Flash home if 6
-                if (finalValue === 6) {
-                    setHomeGlow(true);
-                    setTimeout(() => setHomeGlow(false), 1000);
+                if (result.skipTurn) {
+                    setMessage("Three 6s! Turn skipped!");
+                    setTimeout(() => {
+                        setMessage("");
+                        setGameState(engine.getGameState());
+                    }, 1500);
                 } else {
-                    // Next player
-                    const nextIdx = (PLAYERS.indexOf(currentPlayer) + 1) % PLAYERS.length;
-                    setCurrentPlayer(PLAYERS[nextIdx]);
+                    if (result.value === 6) {
+                        setHomeGlow(true);
+                        setTimeout(() => setHomeGlow(false), 800);
+                    }
+                    setGameState(engine.getGameState());
+
+                    // Check if player has any valid moves
+                    const validMoves = engine.getValidMoves("red");
+                    if (validMoves.length === 0) {
+                        setMessage("No valid moves!");
+                        setTimeout(() => {
+                            engine.nextTurn();
+                            setGameState(engine.getGameState());
+                            setMessage("");
+                        }, 1500);
+                    }
                 }
             }
         }, 60);
     };
+
+    const handlePieceClick = (player, pieceId) => {
+        if (player !== "red" || gameState.diceValue === 0 || isRolling) return;
+
+        if (!engine.canMovePiece(player, pieceId)) {
+            setMessage("Can't move this piece!");
+            setTimeout(() => setMessage(""), 1000);
+            return;
+        }
+
+        const result = engine.movePiece(player, pieceId);
+
+        if (result.success) {
+            setSelectedPiece(null);
+
+            if (result.action === "win") {
+                setMessage("YOU WIN! 🎉🏆");
+            } else if (result.action === "capture") {
+                setMessage("Captured opponent's piece!");
+            } else if (result.action === "start") {
+                setMessage("Piece started!");
+            }
+
+            if (!result.extraTurn) {
+                setTimeout(() => {
+                    engine.nextTurn();
+                    setGameState(engine.getGameState());
+                    setMessage("");
+                }, 800);
+            } else {
+                setGameState(engine.getGameState());
+            }
+        }
+    };
+
+    const getPiecePosition = (player, piece) => {
+        // This will be used to position pieces on the board
+        // For now, return null (pieces will be in home bases)
+        return null;
+    };
+
+    const handleModeSelect = (mode) => {
+        setGameMode(mode);
+        // Don't reset game yet if computer mode - wait for bot count selection
+        if (mode !== 'computer') {
+            engine.reset();
+            setGameState(engine.getGameState());
+        }
+    };
+
+    const handleBotCountSelect = (count) => {
+        setBotCount(count);
+        // Now reset game with selected bot count
+        engine.reset();
+        // Update engine to use selected number of bots
+        engine.bots = PLAYERS.slice(1, count + 1); // Red is player, rest are bots
+        setGameState(engine.getGameState());
+    };
+
+    // Show mode selection if no mode is chosen
+    if (!gameMode) {
+        return <LudoModeSelection onSelectMode={handleModeSelect} />;
+    }
+
+    // Show bot selection if computer mode but no bot count chosen
+    if (gameMode === 'computer' && !botCount) {
+        return (
+            <LudoBotSelection
+                onSelectBotCount={handleBotCountSelect}
+                onBack={() => setGameMode(null)}
+            />
+        );
+    }
 
     return (
         <motion.div
@@ -226,9 +369,9 @@ const LudoBoard = () => {
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
             >
-                <Token color={currentPlayer} isHighlighted />
-                <span className={`font-bold text-lg capitalize ${COLORS[currentPlayer].text}`}>
-                    {currentPlayer}'s Turn
+                <Token color={gameState.currentPlayer} isHighlighted />
+                <span className={`font-bold text-lg capitalize ${COLORS[gameState.currentPlayer].text}`}>
+                    {gameState.currentPlayer}'s Turn
                 </span>
             </motion.div>
 
@@ -384,19 +527,19 @@ const LudoBoard = () => {
             {/* Dice & Controls */}
             <div className="mt-4 flex flex-col items-center gap-3">
                 <Dice3D
-                    value={diceValue}
+                    value={gameState.diceValue}
                     isRolling={isRolling}
                     onClick={rollDice}
-                    currentColor={currentPlayer}
+                    currentColor={gameState.currentPlayer}
                 />
 
                 <AnimatePresence>
-                    {!isRolling && diceValue === 6 && (
+                    {!isRolling && gameState.diceValue === 6 && (
                         <motion.p
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className={`font-bold ${COLORS[currentPlayer].text}`}
+                            className={`font-bold ${COLORS[gameState.currentPlayer].text}`}
                         >
                             🎉 Roll again!
                         </motion.p>
