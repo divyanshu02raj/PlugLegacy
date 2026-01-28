@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw } from "lucide-react";
 
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
-const CELL_SIZE = 24;
+const CELL_SIZE = 30;
 
 const TETROMINOES = {
     I: { shape: [[1, 1, 1, 1]], color: "#06b6d4" },
@@ -34,18 +34,6 @@ const TetrisBoard = () => {
         return pieces[Math.floor(Math.random() * pieces.length)];
     };
 
-    const spawnPiece = useCallback(() => {
-        const type = nextPiece;
-        const shape = TETROMINOES[type].shape;
-        setCurrentPiece({
-            type,
-            shape,
-            x: Math.floor(BOARD_WIDTH / 2) - Math.floor(shape[0].length / 2),
-            y: 0,
-        });
-        setNextPiece(getRandomPiece());
-    }, [nextPiece]);
-
     const checkCollision = useCallback((shape, x, y) => {
         for (let row = 0; row < shape.length; row++) {
             for (let col = 0; col < shape[row].length; col++) {
@@ -59,6 +47,29 @@ const TetrisBoard = () => {
         }
         return false;
     }, [board]);
+
+    const spawnPiece = useCallback(() => {
+        const type = nextPiece;
+        const shape = TETROMINOES[type].shape;
+        const startX = Math.floor(BOARD_WIDTH / 2) - Math.floor(shape[0].length / 2);
+        const startY = 0;
+
+        // Check for immediate collision (Game Over condition)
+        if (checkCollision(shape, startX, startY)) {
+            setGameOver(true);
+            setIsPlaying(false);
+            setCurrentPiece(null); // Stop rendering active piece
+            return;
+        }
+
+        setCurrentPiece({
+            type,
+            shape,
+            x: startX,
+            y: startY,
+        });
+        setNextPiece(getRandomPiece());
+    }, [nextPiece, checkCollision]);
 
     const rotatePiece = useCallback(() => {
         if (!currentPiece) return;
@@ -154,9 +165,39 @@ const TetrisBoard = () => {
         setIsPlaying(true);
     };
 
-    // Render board with current piece
+    // Calculate Ghost Piece Position
+    const getGhostPosition = useCallback(() => {
+        if (!currentPiece) return null;
+        let ghostY = currentPiece.y;
+        while (!checkCollision(currentPiece.shape, currentPiece.x, ghostY + 1)) {
+            ghostY++;
+        }
+        return { x: currentPiece.x, y: ghostY, shape: currentPiece.shape };
+    }, [currentPiece, checkCollision]);
+
+    // Render board with current piece and ghost
     const renderBoard = () => {
-        const display = board.map(row => [...row]);
+        const display = board.map(row => row.map(cell => ({ type: 'filled', color: cell })));
+
+        // Ghost Piece
+        const ghost = getGhostPosition();
+        if (ghost && currentPiece) {
+            for (let row = 0; row < ghost.shape.length; row++) {
+                for (let col = 0; col < ghost.shape[row].length; col++) {
+                    if (ghost.shape[row][col]) {
+                        const y = ghost.y + row;
+                        const x = ghost.x + col;
+                        if (y >= 0 && y < BOARD_HEIGHT && x >= 0 && x < BOARD_WIDTH) {
+                            if (!display[y][x].color) { // Don't overwrite filled cells (though shouldn't collide)
+                                display[y][x] = { type: 'ghost', color: TETROMINOES[currentPiece.type].color };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Active Piece
         if (currentPiece) {
             for (let row = 0; row < currentPiece.shape.length; row++) {
                 for (let col = 0; col < currentPiece.shape[row].length; col++) {
@@ -164,7 +205,7 @@ const TetrisBoard = () => {
                         const y = currentPiece.y + row;
                         const x = currentPiece.x + col;
                         if (y >= 0 && y < BOARD_HEIGHT && x >= 0 && x < BOARD_WIDTH) {
-                            display[y][x] = TETROMINOES[currentPiece.type].color;
+                            display[y][x] = { type: 'active', color: TETROMINOES[currentPiece.type].color };
                         }
                     }
                 }
@@ -177,13 +218,13 @@ const TetrisBoard = () => {
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-lg mx-auto"
+            className="w-full max-w-2xl mx-auto"
         >
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-6 justify-center">
                 {/* Main Board */}
-                <div className="relative">
-                    <div className="absolute inset-0 blur-3xl opacity-20">
-                        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/40 via-transparent to-cyan-500/40" />
+                <div className="relative group">
+                    <div className="absolute inset-0 blur-3xl opacity-20 group-hover:opacity-30 transition-opacity duration-1000">
+                        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/40 via-blue-500/20 to-cyan-500/40" />
                     </div>
 
                     <div
@@ -195,14 +236,15 @@ const TetrisBoard = () => {
                                 row.map((cell, colIdx) => (
                                     <div
                                         key={`${rowIdx}-${colIdx}`}
-                                        className="border border-slate-800/50"
+                                        className={`relative border border-slate-800/50 ${cell.type === 'filled' || cell.type === 'active' ? 'shadow-lg' : ''}`}
                                         style={{
                                             width: CELL_SIZE,
                                             height: CELL_SIZE,
-                                            backgroundColor: cell || "transparent",
-                                            boxShadow: cell ? `0 0 10px ${cell}40` : undefined,
+                                            backgroundColor: cell.type === 'ghost' ? `${cell.color}20` : (cell.color || "transparent"),
+                                            boxShadow: cell.type === 'active' ? `0 0 15px ${cell.color}40` : undefined,
+                                            border: cell.type === 'ghost' ? `1px dashed ${cell.color}60` : undefined,
                                         }}
-                                    />
+                                    ></div>
                                 ))
                             )}
                         </div>
@@ -240,16 +282,21 @@ const TetrisBoard = () => {
 
                     <div className="glass-card rounded-xl p-4 border border-glass-border">
                         <span className="text-xs text-muted-foreground">Next</span>
-                        <div className="mt-2 grid gap-0.5" style={{ gridTemplateColumns: `repeat(4, 12px)` }}>
-                            {TETROMINOES[nextPiece].shape.map((row, rowIdx) =>
-                                row.map((cell, colIdx) => (
-                                    <div
-                                        key={`${rowIdx}-${colIdx}`}
-                                        className="w-3 h-3 rounded-sm"
-                                        style={{ backgroundColor: cell ? TETROMINOES[nextPiece].color : "transparent" }}
-                                    />
-                                ))
-                            )}
+                        <div className="mt-2 flex flex-col items-center gap-1 min-h-[80px] justify-center">
+                            {TETROMINOES[nextPiece].shape.map((row, rowIdx) => (
+                                <div key={rowIdx} className="flex gap-1">
+                                    {row.map((cell, colIdx) => (
+                                        <div
+                                            key={`${rowIdx}-${colIdx}`}
+                                            className="w-5 h-5 rounded-sm border border-white/10"
+                                            style={{
+                                                backgroundColor: cell ? TETROMINOES[nextPiece].color : "transparent",
+                                                boxShadow: cell ? `0 0 8px ${TETROMINOES[nextPiece].color}60` : "none"
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -270,7 +317,7 @@ const TetrisBoard = () => {
                 <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-xs">↑</kbd> Rotate •
                 <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-xs">↓</kbd> Drop
             </p>
-        </motion.div>
+        </motion.div >
     );
 };
 
