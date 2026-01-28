@@ -2,25 +2,25 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const COLORS = {
-    red: { 
+    red: {
         gradient: "from-red-600 to-red-500",
         bg: "bg-red-500",
         glow: "shadow-[0_0_30px_rgba(239,68,68,0.6)]",
         text: "text-red-400"
     },
-    green: { 
+    green: {
         gradient: "from-green-600 to-green-500",
         bg: "bg-green-500",
         glow: "shadow-[0_0_30px_rgba(34,197,94,0.6)]",
         text: "text-green-400"
     },
-    yellow: { 
+    yellow: {
         gradient: "from-yellow-500 to-yellow-400",
         bg: "bg-yellow-500",
         glow: "shadow-[0_0_30px_rgba(234,179,8,0.6)]",
         text: "text-yellow-400"
     },
-    blue: { 
+    blue: {
         gradient: "from-blue-600 to-blue-500",
         bg: "bg-blue-500",
         glow: "shadow-[0_0_30px_rgba(59,130,246,0.6)]",
@@ -30,7 +30,7 @@ const COLORS = {
 
 const PLAYERS = ["red", "green", "yellow", "blue"];
 
-// 3D Dice Component
+// 3D Dice Component with all 6 faces
 const Dice3D = ({ value, isRolling, onClick, currentColor }) => {
     const faces = {
         1: [[1, 1]],
@@ -41,7 +41,36 @@ const Dice3D = ({ value, isRolling, onClick, currentColor }) => {
         6: [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2]],
     };
 
-    const dots = faces[value] || faces[1];
+    const DiceFace = ({ faceValue, transform }) => {
+        const dots = faces[faceValue] || faces[1];
+        return (
+            <div
+                className={`
+                    absolute w-16 h-16 rounded-lg
+                    bg-gradient-to-br ${COLORS[currentColor].gradient}
+                    border-2 border-white/40
+                    flex items-center justify-center
+                    shadow-lg backdrop-blur-sm
+                `}
+                style={{ transform }}
+            >
+                <div className="grid grid-cols-3 grid-rows-3 gap-1 p-2 w-full h-full">
+                    {[0, 1, 2].map(row =>
+                        [0, 1, 2].map(col => {
+                            const hasDot = dots.some(([r, c]) => r === row && c === col);
+                            return (
+                                <div key={`${row}-${col}`} className="flex items-center justify-center">
+                                    {hasDot && (
+                                        <div className="w-2 h-2 rounded-full bg-white shadow-md" />
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <motion.button
@@ -49,49 +78,46 @@ const Dice3D = ({ value, isRolling, onClick, currentColor }) => {
             disabled={isRolling}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className={`
-                relative w-24 h-24 cursor-pointer
-                ${COLORS[currentColor].glow}
-            `}
-            style={{ perspective: "200px" }}
+            className="relative w-16 h-16 cursor-pointer"
+            style={{ perspective: "800px" }}
         >
             <motion.div
                 animate={isRolling ? {
-                    rotateX: [0, 360, 720, 1080],
-                    rotateY: [0, 360, 720, 1080],
-                    rotateZ: [0, 180, 360, 540],
-                } : { rotateX: 0, rotateY: 0, rotateZ: 0 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                    rotateX: [0, 360, 720, 1080, 1440],
+                    rotateY: [0, 360, 720, 1080, 1440],
+                    rotateZ: [0, 180, 360, 540, 720],
+                } : {
+                    rotateX: value === 1 ? 0 : value === 2 ? 180 : value === 3 ? -90 : value === 4 ? 90 : value === 5 ? -90 : 0,
+                    rotateY: value === 1 ? 0 : value === 2 ? 0 : value === 3 ? 0 : value === 4 ? 0 : value === 5 ? 180 : -90,
+                    rotateZ: 0,
+                }}
+                transition={{
+                    duration: isRolling ? 1 : 0.5,
+                    ease: isRolling ? "linear" : "easeOut"
+                }}
                 className="w-full h-full relative"
-                style={{ transformStyle: "preserve-3d" }}
+                style={{
+                    transformStyle: "preserve-3d",
+                    filter: `drop-shadow(${COLORS[currentColor].glow})`
+                }}
             >
-                {/* Dice Face */}
-                <div className={`
-                    absolute inset-0 rounded-2xl
-                    bg-gradient-to-br ${COLORS[currentColor].gradient}
-                    border-2 border-white/30
-                    flex items-center justify-center
-                    shadow-lg
-                `}>
-                    <div className="grid grid-cols-3 grid-rows-3 gap-2 p-3 w-16 h-16">
-                        {[0, 1, 2].map(row =>
-                            [0, 1, 2].map(col => {
-                                const hasDot = dots.some(([r, c]) => r === row && c === col);
-                                return (
-                                    <div key={`${row}-${col}`} className="flex items-center justify-center">
-                                        {hasDot && (
-                                            <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="w-3 h-3 rounded-full bg-white shadow-md"
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </div>
+                {/* Front face (1) */}
+                <DiceFace faceValue={1} transform="translateZ(32px)" />
+
+                {/* Back face (2) */}
+                <DiceFace faceValue={2} transform="rotateY(180deg) translateZ(32px)" />
+
+                {/* Right face (3) */}
+                <DiceFace faceValue={3} transform="rotateY(90deg) translateZ(32px)" />
+
+                {/* Left face (4) */}
+                <DiceFace faceValue={4} transform="rotateY(-90deg) translateZ(32px)" />
+
+                {/* Top face (5) */}
+                <DiceFace faceValue={5} transform="rotateX(90deg) translateZ(32px)" />
+
+                {/* Bottom face (6) */}
+                <DiceFace faceValue={6} transform="rotateX(-90deg) translateZ(32px)" />
             </motion.div>
         </motion.button>
     );
@@ -100,7 +126,7 @@ const Dice3D = ({ value, isRolling, onClick, currentColor }) => {
 // Token/Pawn Component
 const Token = ({ color, size = "normal", isHighlighted }) => {
     const sizeClasses = size === "small" ? "w-4 h-4" : "w-6 h-6";
-    
+
     return (
         <motion.div
             animate={isHighlighted ? { scale: [1, 1.2, 1] } : {}}
@@ -192,11 +218,11 @@ const LudoBoard = () => {
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-xl mx-auto"
+            className="w-full max-w-lg mx-auto"
         >
             {/* Current Player Indicator */}
-            <motion.div 
-                className="flex items-center justify-center gap-3 mb-6"
+            <motion.div
+                className="flex items-center justify-center gap-3 mb-3"
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
             >
@@ -250,7 +276,7 @@ const LudoBoard = () => {
                                 if (isRedHome && row === 0 && col === 0) {
                                     return (
                                         <div key={`${row}-${col}`} className="col-span-6 row-span-6">
-                                            <motion.div 
+                                            <motion.div
                                                 className="w-full h-full"
                                                 animate={homeGlow && currentPlayer === "red" ? { scale: [1, 1.02, 1] } : {}}
                                             >
@@ -262,7 +288,7 @@ const LudoBoard = () => {
                                 if (isGreenHome && row === 0 && col === 9) {
                                     return (
                                         <div key={`${row}-${col}`} className="col-span-6 row-span-6">
-                                            <motion.div 
+                                            <motion.div
                                                 className="w-full h-full"
                                                 animate={homeGlow && currentPlayer === "green" ? { scale: [1, 1.02, 1] } : {}}
                                             >
@@ -274,7 +300,7 @@ const LudoBoard = () => {
                                 if (isYellowHome && row === 9 && col === 0) {
                                     return (
                                         <div key={`${row}-${col}`} className="col-span-6 row-span-6">
-                                            <motion.div 
+                                            <motion.div
                                                 className="w-full h-full"
                                                 animate={homeGlow && currentPlayer === "yellow" ? { scale: [1, 1.02, 1] } : {}}
                                             >
@@ -286,7 +312,7 @@ const LudoBoard = () => {
                                 if (isBlueHome && row === 9 && col === 9) {
                                     return (
                                         <div key={`${row}-${col}`} className="col-span-6 row-span-6">
-                                            <motion.div 
+                                            <motion.div
                                                 className="w-full h-full"
                                                 animate={homeGlow && currentPlayer === "blue" ? { scale: [1, 1.02, 1] } : {}}
                                             >
@@ -312,7 +338,7 @@ const LudoBoard = () => {
                                         "8-6": "yellow", "8-7": "yellow", "8-8": "blue",
                                     };
                                     const centerColor = centerColors[`${row}-${col}`];
-                                    
+
                                     return (
                                         <motion.div
                                             key={`${row}-${col}`}
@@ -339,7 +365,7 @@ const LudoBoard = () => {
                                     else if (isBluePath) pathColor = "blue";
 
                                     return (
-                                        <PathCell 
+                                        <PathCell
                                             key={`${row}-${col}`}
                                             isColored={!!pathColor}
                                             color={pathColor}
@@ -356,14 +382,14 @@ const LudoBoard = () => {
             </div>
 
             {/* Dice & Controls */}
-            <div className="mt-8 flex flex-col items-center gap-4">
-                <Dice3D 
+            <div className="mt-4 flex flex-col items-center gap-3">
+                <Dice3D
                     value={diceValue}
                     isRolling={isRolling}
                     onClick={rollDice}
                     currentColor={currentPlayer}
                 />
-                
+
                 <AnimatePresence>
                     {!isRolling && diceValue === 6 && (
                         <motion.p
