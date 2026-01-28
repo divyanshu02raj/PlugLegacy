@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { authService, userService } from "../../../services/api";
 
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
@@ -28,6 +29,25 @@ const TetrisBoard = () => {
     const [gameOver, setGameOver] = useState(false);
 
     const gameLoopRef = useRef();
+    const hasSavedRef = useRef(false);
+
+    // Save history on Game Over
+    useEffect(() => {
+        if (gameOver && score > 0 && !hasSavedRef.current) {
+            hasSavedRef.current = true;
+            const user = authService.getCurrentUser();
+            if (user) {
+                userService.saveMatch({
+                    gameId: 'tetris',
+                    score: score,
+                    result: 'completed',
+                    opponent: { username: 'Single Player' }
+                }).catch(err => console.error("Failed to save tetris score:", err));
+            }
+        } else if (!gameOver) {
+            hasSavedRef.current = false;
+        }
+    }, [gameOver, score]);
 
     const getRandomPiece = () => {
         const pieces = Object.keys(TETROMINOES);

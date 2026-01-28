@@ -4,7 +4,7 @@ const matchSchema = new mongoose.Schema({
     gameId: {
         type: String,
         required: true,
-        enum: ['chess', 'sudoku', 'wordle', '2048', 'tic-tac-toe', 'snake'] // Add other games as needed
+        enum: ['chess', 'sudoku', 'wordle', '2048', 'tic-tac-toe', 'snake', 'tetris'] // Add other games as needed
     },
     players: [{
         userId: {
