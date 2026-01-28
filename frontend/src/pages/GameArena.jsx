@@ -484,7 +484,7 @@ const GameArena = () => {
 
                                 {/* Right - Chat Sidebar */}
                                 <GameChat
-                                    isDisabled={activeGameMode !== 'friend'}
+                                    isDisabled={activeGameMode !== 'friend' || isSinglePlayerGame}
                                     onlineCount={Object.keys(players || {}).length || 1}
                                     roomId={location.state?.roomId}
                                 />
