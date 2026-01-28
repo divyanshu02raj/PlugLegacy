@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eraser, Edit3, RotateCcw, Play, CheckCircle2, Timer } from "lucide-react";
+import { authService, userService } from "../../../services/api";
 
 // --- Sudoku Logic Helpers ---
 const BLANK = 0;
@@ -85,9 +86,9 @@ const removeKDigits = (board, k) => {
 };
 
 const DIFFICULTIES = {
-    EASY: { name: "Relaxed", removed: 30, color: "text-green-400", border: "border-green-500/20" },
-    MEDIUM: { name: "Balanced", removed: 40, color: "text-blue-400", border: "border-blue-500/20" },
-    HARD: { name: "Intense", removed: 50, color: "text-orange-400", border: "border-orange-500/20" },
+    EASY: { name: "Relaxed", removed: 30, color: "text-green-400", border: "border-green-500/20", multiplier: 1 },
+    MEDIUM: { name: "Balanced", removed: 40, color: "text-blue-400", border: "border-blue-500/20", multiplier: 1.5 },
+    HARD: { name: "Intense", removed: 50, color: "text-orange-400", border: "border-orange-500/20", multiplier: 2 },
 };
 
 // --- Main Component ---
@@ -100,6 +101,7 @@ const SudokuBoard = () => {
     const [noteMode, setNoteMode] = useState(false);
     const [errorCell, setErrorCell] = useState(null);
     const [time, setTime] = useState(0);
+    const hasSavedRef = useRef(false);
 
     // Timer
     useEffect(() => {
@@ -109,6 +111,29 @@ const SudokuBoard = () => {
         }
         return () => clearInterval(interval);
     }, [gameState]);
+
+    // Save Game on Win
+    useEffect(() => {
+        if (gameState === 'won' && !hasSavedRef.current) {
+            hasSavedRef.current = true;
+
+            // Calculate Score: Base(1000) * Diff - Time
+            const diffMult = DIFFICULTIES[difficulty].multiplier;
+            const calculatedScore = Math.max(100, Math.round((1000 * diffMult) - time));
+
+            const user = authService.getCurrentUser();
+            if (user) {
+                userService.saveMatch({
+                    gameId: 'sudoku',
+                    score: calculatedScore,
+                    result: 'completed',
+                    opponent: { username: 'Single Player' }
+                }).catch(err => console.error("Failed to save sudoku score:", err));
+            }
+        } else if (gameState !== 'won') {
+            hasSavedRef.current = false;
+        }
+    }, [gameState, difficulty, time]);
 
     // Keyboard Input
     useEffect(() => {
@@ -250,6 +275,18 @@ const SudokuBoard = () => {
         setBoard(newBoard);
     };
 
+    const getNumberCount = (num) => {
+        let count = 0;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (board[r] && board[r][c] && board[r][c].value === num) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    };
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -287,7 +324,6 @@ const SudokuBoard = () => {
                                 <div className="flex items-center justify-between relative z-10">
                                     <div>
                                         <p className={`font-bold text-lg ${config.color}`}>{config.name}</p>
-                                        <p className="text-xs text-muted-foreground">Removed: {config.removed}</p>
                                     </div>
                                     <div className={`p-2 rounded-full bg-white/5 ${config.color}`}>
                                         <Play className="w-5 h-5 fill-current" />
@@ -408,16 +444,94 @@ const SudokuBoard = () => {
 
                     {/* Numpad */}
                     <div className="grid grid-cols-9 gap-2">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                            <button
-                                key={num}
-                                onClick={() => handleNumberInput(num)}
-                                className="aspect-[4/3] rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xl font-medium text-white transition-all active:scale-95 flex items-center justify-center"
-                            >
-                                {num}
-                            </button>
-                        ))}
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => {
+                            const isComplete = getNumberCount(num) >= 9;
+                            return (
+                                <button
+                                    key={num}
+                                    onClick={() => !isComplete && handleNumberInput(num)}
+                                    disabled={isComplete}
+                                    className={`
+                                        aspect-[4/3] rounded-lg border text-xl font-medium transition-all flex items-center justify-center
+                                        ${isComplete
+                                            ? 'bg-white/5 border-white/5 text-white/20 cursor-not-allowed'
+                                            : 'bg-white/5 hover:bg-white/10 border-white/10 text-white active:scale-95 cursor-pointer'
+                                        }
+                                    `}
+                                >
+                                    {num}
+                                </button>
+                            );
+                        })}
                     </div>
+
+                    {/* Victory Popup */}
+                    <AnimatePresence>
+                        {gameState === 'won' && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50"
+                                onClick={() => setGameState('menu')}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.8, opacity: 0 }}
+                                    transition={{ type: "spring", duration: 0.5 }}
+                                    className="glass-card rounded-3xl p-8 max-w-md mx-4 text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1, rotate: 360 }}
+                                        transition={{ delay: 0.2, type: "spring" }}
+                                        className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-cyan-500 flex items-center justify-center"
+                                    >
+                                        <CheckCircle2 className="w-12 h-12 text-white" />
+                                    </motion.div>
+
+                                    <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent mb-2">
+                                        Puzzle Solved!
+                                    </h2>
+                                    <p className="text-muted-foreground mb-6">Congratulations on completing the challenge</p>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="glass-card p-4 rounded-xl">
+                                            <p className="text-xs text-muted-foreground mb-1">Time</p>
+                                            <p className="text-2xl font-bold text-cyan-400">{formatTime(time)}</p>
+                                        </div>
+                                        <div className="glass-card p-4 rounded-xl">
+                                            <p className="text-xs text-muted-foreground mb-1">Difficulty</p>
+                                            <p className={`text-2xl font-bold ${DIFFICULTIES[difficulty].color}`}>
+                                                {DIFFICULTIES[difficulty].name}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => window.location.href = '/games'}
+                                            className="py-3 rounded-xl bg-white/10 border border-white/20 text-white font-semibold hover:bg-white/20 transition-all"
+                                        >
+                                            Back to Home
+                                        </motion.button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => setGameState('menu')}
+                                            className="py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                                        >
+                                            Play Again
+                                        </motion.button>
+                                    </div>
+                                </motion.div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </>
             )}
         </motion.div>
