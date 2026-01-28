@@ -9,9 +9,10 @@ const PlayerHUD = ({
     score = 0, isFriend = false,
     isCallActive = false, isCallMuted = false, isLocalVideoOn = false,
     onStartCall, onToggleMute, onToggleVideo, onResign, onDraw,
-    hideMedia = false, hideActions = false
+    hideMedia = false, hideActions = false, hideTurn = false,
+    isPlayer: isPlayerProp // Alias to avoid conflict with derived var
 }) => {
-    const isPlayer = position === "bottom";
+    const isPlayer = isPlayerProp !== undefined ? isPlayerProp : position === "bottom";
     const { toast } = useToast();
 
     const handleMediaClick = (type) => {
@@ -189,7 +190,7 @@ const PlayerHUD = ({
                 </motion.div>
 
                 {/* Turn Indicator */}
-                {isActive && (
+                {isActive && !hideTurn && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0 }}
                         animate={{ opacity: 1, scale: 1 }}

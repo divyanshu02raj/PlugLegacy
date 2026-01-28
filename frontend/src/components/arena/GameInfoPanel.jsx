@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { History, Trophy, Zap, Clock, Target, Users } from "lucide-react";
+import { History, Trophy, Zap, Clock, Target, Users, Lock } from "lucide-react";
 
 const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
     const scrollRef = useRef(null);
@@ -38,13 +38,17 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
                 <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Mode</span>
-                        <span className="font-medium capitalize truncate pl-2">{gameMode === 'computer' ? 'Vs Computer' : (gameMode === 'friend' ? 'Friend Match' : 'Selection')}</span>
+                        <span className="font-medium capitalize truncate pl-2">
+                            {gameMode === 'computer' ? 'Vs Computer' :
+                                (gameMode === 'friend' ? 'Friend Match' :
+                                    (gameMode === 'single-player' ? 'Single Player' : 'Selection'))}
+                        </span>
                     </div>
                 </div>
             </div>
 
             {/* Your Stats - Fixed Height (~220px) */}
-            <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0 h-[220px] flex flex-col">
+            <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0 h-[220px] flex flex-col relative overflow-hidden">
                 <h3 className="font-bold mb-3 flex items-center gap-2 shrink-0">
                     <Trophy className="w-5 h-5 text-yellow-400" />
                     Your Stats
@@ -59,10 +63,19 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
                         </div>
                     ))}
                 </div>
+
+                {/* Lock Overlay for Single Player */}
+                {gameMode === 'single-player' && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-4">
+                        <Lock className="w-8 h-8 text-muted-foreground mb-2" />
+                        <p className="text-sm font-bold text-muted-foreground">Stats Unavailable</p>
+                        <p className="text-xs text-muted-foreground/60">Single Player Mode</p>
+                    </div>
+                )}
             </div>
 
             {/* Move History - Fixed Height (~380px) */}
-            <div className="h-[380px] glass-card rounded-2xl border border-glass-border p-4 flex flex-col overflow-hidden shrink-0">
+            <div className="h-[380px] glass-card rounded-2xl border border-glass-border p-4 flex flex-col overflow-hidden shrink-0 relative">
                 <div className="flex items-center gap-2 mb-4">
                     <History className="w-5 h-5 text-primary" />
                     <h3 className="font-bold">Move History</h3>
@@ -121,6 +134,15 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Lock Overlay for Single Player */}
+                {gameMode === 'single-player' && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-4">
+                        <Lock className="w-8 h-8 text-muted-foreground mb-2" />
+                        <p className="text-sm font-bold text-muted-foreground">History Unavailable</p>
+                        <p className="text-xs text-muted-foreground/60">Single Player Mode</p>
+                    </div>
+                )}
             </div>
         </motion.div>
     );

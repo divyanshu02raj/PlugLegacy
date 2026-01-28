@@ -12,6 +12,7 @@ import GameInfoPanel from "@/components/arena/GameInfoPanel";
 import MobileDrawer, { MobileMenuButton } from "@/components/arena/MobileDrawer";
 import VideoOverlay from "@/components/arena/VideoOverlay";
 import { useWebRTC } from "@/hooks/useWebRTC";
+import { userService } from "@/services/api";
 
 // Game metadata - All supported games
 const gameInfo = {
@@ -57,6 +58,20 @@ const GameArena = () => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeDrawerTab, setActiveDrawerTab] = useState("chat");
     const [isResignModalOpen, setIsResignModalOpen] = useState(false);
+    const [userInfo, setUserInfo] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+
+    // Fetch fresh stats on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const profile = await userService.getProfile();
+                setUserInfo(prev => ({ ...prev, ...profile }));
+            } catch (err) {
+                console.error("Failed to fetch profile", err);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     // Game State
     const [players, setPlayers] = useState(location.state?.players || {});
@@ -72,9 +87,10 @@ const GameArena = () => {
     const myColor = Object.keys(players).find(key => players[key]?.username === localUser.username) === 'w' ? 'w' : 'b'; // default logic
 
     const me = {
-        username: localUser.username || "You",
-        avatar: localUser.avatar || "👤",
-        color: myColor
+        username: userInfo.username || "You",
+        avatar: userInfo.avatar || "👤",
+        color: myColor,
+        ...userInfo // Include wins, losses, elo
     };
 
     const opponent = Object.values(players).find(p => p.username !== localUser.username) || {
@@ -364,15 +380,40 @@ const GameArena = () => {
                         {isMobile ? (
                             /* Mobile Layout */
                             <div className="h-full flex flex-col">
-                                {/* Opponent HUD */}
+                                {/* Top HUD Area */}
                                 {isGameActive && (
-                                    <PlayerHUD
-                                        position="top"
-                                        username={opponent.username}
-                                        avatar={opponent.avatar}
-                                        isActive={!isPlayerTurn}
-                                        score={scores.opponent}
-                                    />
+                                    isSinglePlayerGame ? (
+                                        /* Single Player: Show Player HUD at Top */
+                                        <PlayerHUD
+                                            position="top"
+                                            username={me.username}
+                                            avatar={me.avatar}
+                                            isActive={isPlayerTurn}
+                                            score={scores.player}
+                                            isFriend={true}
+                                            isCallActive={isCallActive}
+                                            isCallMuted={isCallMuted}
+                                            isLocalVideoOn={isLocalVideoOn}
+                                            onStartCall={handleStartCall}
+                                            onToggleMute={setIsCallMuted}
+                                            onToggleVideo={setIsLocalVideoOn}
+                                            hideMedia={true}
+                                            hideActions={true}
+                                            hideTurn={true}
+                                            isPlayer={true}
+                                            onResign={handleResignClick}
+                                            onDraw={handleOfferDraw}
+                                        />
+                                    ) : (
+                                        /* Multiplayer: Show Opponent HUD at Top */
+                                        <PlayerHUD
+                                            position="top"
+                                            username={opponent.username}
+                                            avatar={opponent.avatar}
+                                            isActive={!isPlayerTurn}
+                                            score={scores.opponent}
+                                        />
+                                    )
                                 )}
 
                                 {/* Game Board */}
@@ -388,8 +429,8 @@ const GameArena = () => {
                                     />
                                 </div>
 
-                                {/* Player HUD */}
-                                {isGameActive && (
+                                {/* Bottom HUD Area - Multiplayer Only */}
+                                {isGameActive && !isSinglePlayerGame && (
                                     <PlayerHUD
                                         position="bottom"
                                         username={me.username}
@@ -403,8 +444,9 @@ const GameArena = () => {
                                         onStartCall={handleStartCall}
                                         onToggleMute={setIsCallMuted}
                                         onToggleVideo={setIsLocalVideoOn}
-                                        hideMedia={activeGameMode === 'computer' || isSinglePlayerGame}
-                                        hideActions={activeGameMode === 'computer' || isSinglePlayerGame}
+                                        hideMedia={activeGameMode === 'computer'}
+                                        hideActions={activeGameMode === 'computer'}
+                                        hideTurn={false}
                                         onResign={handleResignClick}
                                         onDraw={handleOfferDraw}
                                     />
@@ -427,21 +469,46 @@ const GameArena = () => {
                                 {/* Left - Game Info Panel */}
                                 <GameInfoPanel
                                     user={me}
-                                    gameMode={activeGameMode}
+                                    gameMode={isSinglePlayerGame ? 'single-player' : activeGameMode}
                                     moves={moves}
                                 />
 
                                 {/* Center - Board Area */}
                                 <div className="flex flex-col h-full overflow-hidden">
-                                    {/* Opponent HUD */}
+                                    {/* Top HUD Area */}
                                     {isGameActive && (
-                                        <PlayerHUD
-                                            position="top"
-                                            username={opponent.username}
-                                            avatar={opponent.avatar}
-                                            isActive={!isPlayerTurn}
-                                            score={scores.opponent}
-                                        />
+                                        isSinglePlayerGame ? (
+                                            /* Single Player: Show Player HUD at Top */
+                                            <PlayerHUD
+                                                position="top"
+                                                username={me.username}
+                                                avatar={me.avatar}
+                                                isActive={isPlayerTurn}
+                                                score={scores.player}
+                                                isFriend={true}
+                                                isCallActive={isCallActive}
+                                                isCallMuted={isCallMuted}
+                                                isLocalVideoOn={isLocalVideoOn}
+                                                onStartCall={handleStartCall}
+                                                onToggleMute={setIsCallMuted}
+                                                onToggleVideo={setIsLocalVideoOn}
+                                                hideMedia={true}
+                                                hideActions={true}
+                                                hideTurn={true}
+                                                isPlayer={true}
+                                                onResign={handleResignClick}
+                                                onDraw={handleOfferDraw}
+                                            />
+                                        ) : (
+                                            /* Multiplayer: Show Opponent HUD at Top */
+                                            <PlayerHUD
+                                                position="top"
+                                                username={opponent.username}
+                                                avatar={opponent.avatar}
+                                                isActive={!isPlayerTurn}
+                                                score={scores.opponent}
+                                            />
+                                        )
                                     )}
 
                                     {/* Game Board */}
@@ -459,8 +526,8 @@ const GameArena = () => {
                                         />
                                     </div>
 
-                                    {/* Player HUD */}
-                                    {isGameActive && (
+                                    {/* Bottom HUD Area - Multiplayer Only */}
+                                    {isGameActive && !isSinglePlayerGame && (
                                         <PlayerHUD
                                             position="bottom"
                                             username={me.username}
@@ -474,8 +541,9 @@ const GameArena = () => {
                                             onStartCall={handleStartCall}
                                             onToggleMute={setIsCallMuted}
                                             onToggleVideo={setIsLocalVideoOn}
-                                            hideMedia={activeGameMode === 'computer' || isSinglePlayerGame}
-                                            hideActions={activeGameMode === 'computer' || isSinglePlayerGame}
+                                            hideMedia={activeGameMode === 'computer'}
+                                            hideActions={activeGameMode === 'computer'}
+                                            hideTurn={false}
                                             onResign={handleResignClick}
                                             onDraw={handleOfferDraw}
                                         />
