@@ -12,10 +12,19 @@ const SnakeBoard = () => {
     const [direction, setDirection] = useState("RIGHT");
     const [isPlaying, setIsPlaying] = useState(false);
     const [score, setScore] = useState(0);
-    const [highScore, setHighScore] = useState(0);
+    const [highScore, setHighScore] = useState(() => {
+        const saved = localStorage.getItem("snake_high_score");
+        return saved ? parseInt(saved, 10) : 0;
+    });
     const [gameOver, setGameOver] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
     const gameLoopRef = useRef();
     const directionRef = useRef(direction);
+
+    // Persist High Score
+    useEffect(() => {
+        localStorage.setItem("snake_high_score", highScore.toString());
+    }, [highScore]);
 
     const generateFood = useCallback((currentSnake) => {
         let newFood;
@@ -43,6 +52,7 @@ const SnakeBoard = () => {
             if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
                 setGameOver(true);
                 setIsPlaying(false);
+                setHasStarted(false);
                 setHighScore(prev => Math.max(prev, score));
                 return prevSnake;
             }
@@ -50,6 +60,7 @@ const SnakeBoard = () => {
             if (prevSnake.some(s => s.x === head.x && s.y === head.y)) {
                 setGameOver(true);
                 setIsPlaying(false);
+                setHasStarted(false);
                 setHighScore(prev => Math.max(prev, score));
                 return prevSnake;
             }
@@ -111,6 +122,11 @@ const SnakeBoard = () => {
         setDirection("RIGHT");
         setScore(0);
         setGameOver(false);
+        setIsPlaying(true);
+        setHasStarted(true);
+    };
+
+    const resumeGame = () => {
         setIsPlaying(true);
     };
 
@@ -185,11 +201,11 @@ const SnakeBoard = () => {
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={startGame}
+                            onClick={hasStarted && !gameOver ? resumeGame : startGame}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)] px-5 py-3 rounded-xl flex items-center gap-2 font-semibold transition-all"
                         >
                             {gameOver ? <RotateCcw className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                            {gameOver ? "Retry" : "Play"}
+                            {gameOver ? "Retry" : (hasStarted ? "Resume" : "Play")}
                         </motion.button>
                     ) : (
                         <motion.button
@@ -321,7 +337,7 @@ const SnakeBoard = () => {
                                                     height: 2,
                                                     bottom: 2,
                                                     left: "50%",
-                                                    transform: "translateX(-50 किन्न)",
+                                                    transform: "translateX(-50%)",
                                                     borderRadius: 2,
                                                 }}
                                             />
@@ -452,7 +468,7 @@ const SnakeBoard = () => {
                                         transition={{ duration: 2, repeat: Infinity }}
                                         className="text-muted-foreground font-medium"
                                     >
-                                        Press Play to start
+                                        {hasStarted ? "Press Resume to continue" : "Press Play to start"}
                                     </motion.p>
                                 </motion.div>
                             )}

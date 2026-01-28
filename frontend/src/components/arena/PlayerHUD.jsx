@@ -166,10 +166,8 @@ const PlayerHUD = ({
           `} />
                 </div>
 
-                {/* Username & Score */}
                 <div className="flex-1">
                     <h3 className="font-bold text-lg">{username}</h3>
-                    <p className="text-sm text-muted-foreground">Score: {score}</p>
                 </div>
 
                 {/* Timer */}
