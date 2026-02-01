@@ -193,14 +193,6 @@ const Game2048Board = () => {
                         {score}
                     </motion.p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={resetGame}
-                    className="px-4 py-2 rounded-xl glass-card border border-glass-border hover:border-primary/50"
-                >
-                    New Game
-                </motion.button>
             </div>
 
             {/* Board */}
