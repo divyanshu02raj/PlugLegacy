@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { userService, authService } from "../../../services/api";
+
 
 const GRID_SIZE = 4;
 
@@ -23,7 +26,52 @@ const getTileColor = (value) => {
 const Game2048Board = () => {
     const [tiles, setTiles] = useState([]);
     const [score, setScore] = useState(0);
-    const [tileId, setTileId] = useState(0);
+    const tileIdRef = useRef(0);
+    const [gameOver, setGameOver] = useState(false);
+    const navigate = useNavigate();
+
+    // Check for Game Over
+    const checkGameOver = useCallback((currentTiles) => {
+        if (currentTiles.length < 16) return false; // Not full
+
+        // Check for possible merges
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const tile = currentTiles.find(t => t.row === r && t.col === c);
+                if (!tile) return false; // Should not happen if length is 16 but safe check
+
+                // Check right
+                if (c < GRID_SIZE - 1) {
+                    const right = currentTiles.find(t => t.row === r && t.col === c + 1);
+                    if (right && right.value === tile.value) return false;
+                }
+                // Check down
+                if (r < GRID_SIZE - 1) {
+                    const down = currentTiles.find(t => t.row === r + 1 && t.col === c);
+                    if (down && down.value === tile.value) return false;
+                }
+            }
+        }
+        return true;
+    }, []);
+
+    // Save Score on Game Over
+    useEffect(() => {
+        if (gameOver && score > 0) {
+            userService.saveMatch({
+                gameId: '2048',
+                result: 'loss', // Single player is effectively 'practice' or just logging score
+                score: score,
+                players: [{ userId: authService.getCurrentUser()._id, result: 'win', score: score }] // Pseudo structure for profile
+            }).catch(err => console.error("Failed to save stat:", err));
+        }
+    }, [gameOver, score]);
+
+    useEffect(() => {
+        if (tiles.length > 0 && checkGameOver(tiles)) {
+            setGameOver(true);
+        }
+    }, [tiles, checkGameOver]);
 
     const addRandomTile = useCallback((currentTiles) => {
         const emptyCells = [];
@@ -38,15 +86,14 @@ const Game2048Board = () => {
 
         const cell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
         const newTile = {
-            id: tileId,
+            id: tileIdRef.current++,
             value: Math.random() < 0.9 ? 2 : 4,
             row: cell.row,
             col: cell.col,
             isNew: true,
         };
-        setTileId(prev => prev + 1);
         return [...currentTiles, newTile];
-    }, [tileId]);
+    }, []);
 
     useEffect(() => {
         setTiles(addRandomTile(addRandomTile([])));
@@ -123,6 +170,7 @@ const Game2048Board = () => {
     const resetGame = () => {
         setTiles([]);
         setScore(0);
+        setGameOver(false);
         setTimeout(() => setTiles(addRandomTile(addRandomTile([]))), 50);
     };
 
@@ -200,6 +248,43 @@ const Game2048Board = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Game Over Overlay */}
+            <AnimatePresence>
+                {gameOver && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-50 flex items-center justify-center p-4"
+                    >
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm rounded-2xl" />
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="relative glass-card p-6 rounded-2xl border border-glass-border text-center w-full max-w-sm shadow-2xl"
+                        >
+                            <h2 className="text-3xl font-bold text-white mb-2">Game Over!</h2>
+                            <p className="text-muted-foreground mb-6">Final Score: <span className="text-primary font-bold">{score}</span></p>
+
+                            <div className="space-y-3">
+                                <button
+                                    onClick={resetGame}
+                                    className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors"
+                                >
+                                    Try Again
+                                </button>
+                                <button
+                                    onClick={() => navigate('/games')}
+                                    className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+                                >
+                                    Back to Arena
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Instructions */}
             <p className="mt-4 text-center text-sm text-muted-foreground">

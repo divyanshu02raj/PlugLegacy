@@ -13,8 +13,8 @@ const SAFE_SPOTS = [0, 8, 13, 21, 26, 34, 39, 47];
 const START_POSITIONS = {
     red: 0,
     green: 13,
-    yellow: 26,
-    blue: 39,
+    yellow: 39, // Bottom-Left
+    blue: 26,   // Bottom-Right
 };
 
 class LudoEngine {
@@ -22,12 +22,20 @@ class LudoEngine {
         this.reset();
     }
 
-    reset() {
+    reset(activePlayers = null) {
         this.currentPlayer = 0; // Index in PLAYERS array
         this.diceValue = 0;
         this.consecutiveSixes = 0;
         this.gameOver = false;
         this.winner = null;
+        this.activePlayers = activePlayers || PLAYERS; // Default to all players
+
+        // Ensure currentPlayer starts on an active player
+        if (!this.activePlayers.includes(PLAYERS[this.currentPlayer])) {
+            // Find first active player
+            const firstActive = PLAYERS.find(p => this.activePlayers.includes(p));
+            this.currentPlayer = PLAYERS.indexOf(firstActive);
+        }
 
         // Initialize pieces for all players
         this.pieces = {};
@@ -47,6 +55,16 @@ class LudoEngine {
 
     getCurrentPlayer() {
         return PLAYERS[this.currentPlayer];
+    }
+
+    getGameState() {
+        return {
+            currentPlayer: PLAYERS[this.currentPlayer],
+            diceValue: this.diceValue,
+            pieces: this.pieces,
+            gameOver: this.gameOver,
+            winner: this.winner,
+        };
     }
 
     rollDice() {
@@ -209,7 +227,21 @@ class LudoEngine {
     nextTurn() {
         // Only advance turn if didn't roll a 6
         if (this.diceValue !== 6) {
-            this.currentPlayer = (this.currentPlayer + 1) % PLAYERS.length;
+            let loopSafety = 0;
+            do {
+                this.currentPlayer = (this.currentPlayer + 1) % PLAYERS.length;
+                loopSafety++;
+                if (loopSafety > 10) {
+                    console.error("Infinite loop detected in nextTurn!", {
+                        currentPlayer: this.currentPlayer,
+                        activePlayers: this.activePlayers
+                    });
+                    // Fallback to first active player
+                    const firstActive = PLAYERS.find(p => this.activePlayers.includes(p));
+                    this.currentPlayer = PLAYERS.indexOf(firstActive);
+                    break;
+                }
+            } while (!this.activePlayers.includes(PLAYERS[this.currentPlayer]));
         }
         this.diceValue = 0;
     }
@@ -249,21 +281,17 @@ class LudoEngine {
             if (piece.position !== -1 && !piece.inHomeStretch) {
                 const startPos = START_POSITIONS[player];
                 const distanceFromStart = (piece.position - startPos + BOARD_SIZE) % BOARD_SIZE;
-                const newDistanceFromStart = distanceFromStart + this.diceValue;
-
-                if (newDistanceFromStart >= BOARD_SIZE - 1) {
-                    score += 400;
-                }
+                if (distanceFromStart > 40) score += 100; // Closer to home is better
             }
 
-            // Priority 5: Advance furthest piece
-            if (piece.inHomeStretch) {
-                score += piece.homeStretchPosition * 10;
-            } else if (piece.position !== -1) {
-                const startPos = START_POSITIONS[player];
-                const distanceFromStart = (piece.position - startPos + BOARD_SIZE) % BOARD_SIZE;
-                score += distanceFromStart;
+            // Priority 5: Safe spot
+            if (piece.position !== -1 && !piece.inHomeStretch) {
+                const newPos = (piece.position + this.diceValue) % BOARD_SIZE;
+                if (SAFE_SPOTS.includes(newPos)) score += 50;
             }
+
+            // Random variation to make it less predictable
+            score += Math.random() * 10;
 
             if (score > bestScore) {
                 bestScore = score;
@@ -272,16 +300,6 @@ class LudoEngine {
         }
 
         return bestMove;
-    }
-
-    getGameState() {
-        return {
-            currentPlayer: this.getCurrentPlayer(),
-            diceValue: this.diceValue,
-            pieces: this.pieces,
-            gameOver: this.gameOver,
-            winner: this.winner,
-        };
     }
 }
 
