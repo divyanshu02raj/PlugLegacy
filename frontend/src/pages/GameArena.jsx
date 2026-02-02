@@ -100,7 +100,7 @@ const GameArena = () => {
     };
 
     // Games that are strictly single-player for now
-    const isSinglePlayerGame = ["snake", "tetris", "2048", "sudoku", "wordle", "memory-match"].includes(gameId);
+    const isSinglePlayerGame = ["snake", "tetris", "2048", "sudoku", "wordle", "memory-match", "crossword"].includes(gameId);
 
     // Handlers
     const handleGameEnd = (result) => {
@@ -476,7 +476,7 @@ const GameArena = () => {
                                 {/* Center - Board Area */}
                                 <div className="flex flex-col h-full overflow-hidden">
                                     {/* Top HUD Area */}
-                                    {isGameActive && (
+                                    {isGameActive && gameId !== 'crossword' && (
                                         isSinglePlayerGame ? (
                                             /* Single Player: Show Player HUD at Top */
                                             <PlayerHUD
