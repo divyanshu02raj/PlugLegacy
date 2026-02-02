@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Circle, Timer, Lightbulb, CheckCircle, RotateCcw, ArrowLeft } from "lucide-react";
 import { LOGIC_PUZZLES } from "../../../utils/LogicGridData";
+import { authService, userService } from "../../../services/api";
 
 const LogicGridBoard = () => {
     const [currentPuzzle, setCurrentPuzzle] = useState(null);
@@ -9,6 +10,7 @@ const LogicGridBoard = () => {
     const [timer, setTimer] = useState(0);
     const [isSolved, setIsSolved] = useState(false);
     const [hintsUsed, setHintsUsed] = useState(0);
+    const hasSavedRef = useRef(false);
 
     // Load Random Puzzle
     const loadRandomPuzzle = useCallback(() => {
@@ -25,6 +27,7 @@ const LogicGridBoard = () => {
         setTimer(0);
         setIsSolved(false);
         setHintsUsed(0);
+        hasSavedRef.current = false;
     }, []);
 
     // Load puzzle on mount
@@ -38,6 +41,32 @@ const LogicGridBoard = () => {
         const interval = setInterval(() => setTimer(t => t + 1), 1000);
         return () => clearInterval(interval);
     }, [isSolved, currentPuzzle]);
+
+    // Save Match on Win
+    useEffect(() => {
+        if (isSolved && !hasSavedRef.current && currentPuzzle) {
+            hasSavedRef.current = true;
+
+            // Calculate Score: Base score by grid size - time penalty - hint penalty
+            const gridSize = currentPuzzle.solution.length;
+            const baseScore = gridSize === 3 ? 500 : gridSize === 4 ? 1000 : 1500; // 3x3=500, 4x4=1000, 5x5=1500
+            const timePenalty = timer * 2; // 2 points per second
+            const hintPenalty = hintsUsed * 50; // 50 points per hint
+            const calculatedScore = Math.max(100, baseScore - timePenalty - hintPenalty);
+
+            const user = authService.getCurrentUser();
+            if (user) {
+                userService.saveMatch({
+                    gameId: 'logic-grid',
+                    score: calculatedScore,
+                    result: 'completed',
+                    opponent: { username: 'Single Player' }
+                }).catch(err => console.error("Failed to save logic grid score:", err));
+            }
+        } else if (!isSolved) {
+            hasSavedRef.current = false;
+        }
+    }, [isSolved, currentPuzzle, timer, hintsUsed]);
 
     // Format time as MM:SS
     const formatTime = (seconds) => {
