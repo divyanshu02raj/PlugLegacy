@@ -81,25 +81,31 @@ const getRandomMove = (board) => {
 };
 
 // Calculate dynamic win line position
-const getWinLineTransform = (line) => {
-    if (!line) return null;
+// Accurate win line calculation using getBoundingClientRect
+const getWinLineStyle = (line, cellRefs, boardRef) => {
+    if (!line?.length || !cellRefs.current || !boardRef.current) return null;
 
-    const key = line.join(",");
-    const transforms = {
-        // Rows
-        "0,1,2": { top: "16.67%", left: "50%", rotate: 0, width: "90%" },
-        "3,4,5": { top: "50%", left: "50%", rotate: 0, width: "90%" },
-        "6,7,8": { top: "83.33%", left: "50%", rotate: 0, width: "90%" },
-        // Columns
-        "0,3,6": { top: "50%", left: "16.67%", rotate: 90, width: "90%" },
-        "1,4,7": { top: "50%", left: "50%", rotate: 90, width: "90%" },
-        "2,5,8": { top: "50%", left: "83.33%", rotate: 90, width: "90%" },
-        // Diagonals
-        "0,4,8": { top: "50%", left: "50%", rotate: 45, width: "127%" },
-        "2,4,6": { top: "50%", left: "50%", rotate: -45, width: "127%" },
-    };
+    const startEl = cellRefs.current[line[0]];
+    const midEl = cellRefs.current[line[1]];
+    const endEl = cellRefs.current[line[2]];
+    const boardEl = boardRef.current;
 
-    return transforms[key];
+    if (!startEl || !midEl || !endEl) return null;
+
+    const boardRect = boardEl.getBoundingClientRect();
+    const r1 = startEl.getBoundingClientRect();
+    const r2 = endEl.getBoundingClientRect();
+
+    // Convert viewport → board-local coordinates
+    const x1 = r1.left + r1.width / 2 - boardRect.left;
+    const y1 = r1.top + r1.height / 2 - boardRect.top;
+    const x2 = r2.left + r2.width / 2 - boardRect.left;
+    const y2 = r2.top + r2.height / 2 - boardRect.top;
+
+    const length = Math.hypot(x2 - x1, y2 - y1);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+    return { x1, y1, length, angle };
 };
 
 const DIFFICULTIES = {
@@ -115,7 +121,10 @@ const TicTacToeBoard = () => {
     const [board, setBoard] = useState(Array(9).fill(null));
     const [isXNext, setIsXNext] = useState(true);
     const [stats, setStats] = useState({ wins: 0, losses: 0, draws: 0 });
+    const [showModal, setShowModal] = useState(false);
     const hasSavedRef = useRef(false);
+    const cellRefs = useRef([]);
+    const boardRef = useRef(null);
 
     const result = checkWinner(board);
     const winner = result?.winner;
@@ -123,7 +132,25 @@ const TicTacToeBoard = () => {
     const isDraw = !winner && board.every(cell => cell !== null);
     const isGameOver = winner || isDraw;
 
-    const winLineTransform = useMemo(() => getWinLineTransform(winLine), [winLine]);
+    // Calculate win line position using actual DOM elements
+    const winLineStyle = useMemo(
+        () => getWinLineStyle(result?.line, cellRefs, boardRef),
+        [result, board]
+    );
+
+    // Show modal with delay after game ends
+    useEffect(() => {
+        if (isGameOver) {
+            const timer = setTimeout(() => {
+                setShowModal(true);
+            }, 3000); // 3 second delay
+            return () => clearTimeout(timer);
+        } else {
+            setShowModal(false);
+        }
+    }, [isGameOver]);
+
+
 
     // AI Move (Computer Mode)
     useEffect(() => {
@@ -212,12 +239,14 @@ const TicTacToeBoard = () => {
             setGameState('difficulty');
             setBoard(Array(9).fill(null));
             setIsXNext(true);
+            setShowModal(false);
             hasSavedRef.current = false;
         } else {
             // Friend mode - ask for confirmation
             if (confirm('Does your friend want to play again?')) {
                 setBoard(Array(9).fill(null));
                 setIsXNext(true);
+                setShowModal(false);
                 hasSavedRef.current = false;
             } else {
                 backToMenu();
@@ -237,7 +266,7 @@ const TicTacToeBoard = () => {
         <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-md mx-auto"
+            className="w-full max-w-md mx-auto overflow-hidden"
         >
             {gameState === 'menu' ? (
                 /* Mode Selection Menu */
@@ -359,10 +388,11 @@ const TicTacToeBoard = () => {
                         </div>
 
                         {/* Grid Container with gaps */}
-                        <div className="relative grid grid-cols-3 gap-3 p-4">
+                        <div ref={boardRef} className="relative grid grid-cols-3 gap-3 p-4">
                             {board.map((cell, index) => (
                                 <motion.button
                                     key={index}
+                                    ref={(el) => (cellRefs.current[index] = el)}
                                     whileHover={{ scale: cell || isGameOver ? 1 : 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleCellClick(index)}
@@ -500,19 +530,19 @@ const TicTacToeBoard = () => {
                                 }}
                             />
 
-                            {/* Dynamic Win Line */}
+                            {/* Dynamic Win Line - Pixel Perfect */}
                             <AnimatePresence>
-                                {winner && winLineTransform && (
+                                {winner && winLineStyle && (
                                     <motion.div
-                                        initial={{ scaleX: 0 }}
-                                        animate={{ scaleX: 1 }}
-                                        transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-                                        className="absolute h-1 origin-center z-20 rounded-full"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: winLineStyle.length }}
+                                        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+                                        className="absolute h-1 z-50 rounded-full pointer-events-none"
                                         style={{
-                                            top: winLineTransform.top,
-                                            left: winLineTransform.left,
-                                            width: winLineTransform.width,
-                                            transform: `translate(-50%, -50%) rotate(${winLineTransform.rotate}deg)`,
+                                            left: winLineStyle.x1,
+                                            top: winLineStyle.y1,
+                                            transform: `rotate(${winLineStyle.angle}deg)`,
+                                            transformOrigin: "left center",
                                             background: "linear-gradient(90deg, hsl(var(--primary)), hsl(30 100% 60%), hsl(var(--primary)))",
                                             boxShadow: `
                                                 0 0 10px hsl(var(--primary)),
@@ -531,7 +561,7 @@ const TicTacToeBoard = () => {
 
                     {/* Win/Draw Modal Overlay */}
                     <AnimatePresence>
-                        {isGameOver && (
+                        {showModal && (
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
