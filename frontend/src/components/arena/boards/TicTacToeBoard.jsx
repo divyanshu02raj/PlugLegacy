@@ -114,7 +114,7 @@ const DIFFICULTIES = {
     HARD: { name: "Hard", color: "text-red-400", icon: "🔥", scoreMultiplier: 1 },
 };
 
-const TicTacToeBoard = () => {
+const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
     const [gameState, setGameState] = useState('menu'); // menu, playing, finished
     const [mode, setMode] = useState(null); // 'computer' or 'friend'
     const [difficulty, setDifficulty] = useState(null); // 'EASY', 'MEDIUM', 'HARD'
@@ -138,6 +138,11 @@ const TicTacToeBoard = () => {
         [result, board]
     );
 
+    // Initialize state on mount
+    useEffect(() => {
+        if (onGameStateChange) onGameStateChange('selection');
+    }, []);
+
     // Show modal with delay after game ends
     useEffect(() => {
         if (isGameOver) {
@@ -153,8 +158,17 @@ const TicTacToeBoard = () => {
 
 
     // AI Move (Computer Mode)
+    // AI Move (Computer Mode)
     useEffect(() => {
         if (mode === 'computer' && !isXNext && !isGameOver && gameState === 'playing') {
+            // Notify parent about turn change
+            if (onTurnChange) {
+                // In computer mode: Player is White/X (true), Computer is Black/O (false)
+                // isXNext: true = Player's turn, false = Computer's turn
+                // GameArena expects: true = Player's turn, false = Opponent's turn
+                onTurnChange(isXNext ? 'w' : 'b');
+            }
+
             const timer = setTimeout(() => {
                 let move;
 
@@ -177,8 +191,13 @@ const TicTacToeBoard = () => {
             }, 500); // Delay for realism
 
             return () => clearTimeout(timer);
+        } else {
+            // Notify even when it's player's turn or game over state changes
+            if (onTurnChange && mode === 'computer') {
+                onTurnChange(isXNext ? 'w' : 'b');
+            }
         }
-    }, [isXNext, board, mode, difficulty, isGameOver, gameState]);
+    }, [isXNext, board, mode, difficulty, isGameOver, gameState, onTurnChange]);
 
     // Save Match on Game End
     useEffect(() => {
@@ -222,10 +241,12 @@ const TicTacToeBoard = () => {
         newBoard[index] = isXNext ? "X" : "O";
         setBoard(newBoard);
         setIsXNext(!isXNext);
+        // Call onTurnChange is handled by useEffect for consistency or we can call here
     };
 
     const startGame = (selectedMode, selectedDifficulty = null) => {
         setMode(selectedMode);
+        if (onGameStateChange) onGameStateChange(selectedMode, selectedDifficulty);
         setDifficulty(selectedDifficulty);
         setBoard(Array(9).fill(null));
         setIsXNext(true);

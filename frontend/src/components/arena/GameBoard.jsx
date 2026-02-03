@@ -45,7 +45,7 @@ const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, o
             case "logic-grid": return <LogicGridBoard />;
             case "memory-match": return <MemoryMatchBoard />;
             case "number-recall": return <NumberRecallBoard />;
-            case "tic-tac-toe": return <TicTacToeBoard />;
+            case "tic-tac-toe": return <TicTacToeBoard onGameStateChange={onGameStateChange} onTurnChange={onTurnChange} />;
             case "connect-4": return <Connect4Board />;
             case "chess": return <ChessBoard
                 ref={ref}

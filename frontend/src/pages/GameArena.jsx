@@ -77,6 +77,7 @@ const GameArena = () => {
     const [players, setPlayers] = useState(location.state?.players || {});
     const [moves, setMoves] = useState([]);
     const [activeGameMode, setActiveGameMode] = useState("friend");
+    const [activeDifficulty, setActiveDifficulty] = useState(null);
     const [scores, setScores] = useState({ player: 0, opponent: 0 });
     const [isGameActive, setIsGameActive] = useState(true);
     const [isPlayerTurn, setIsPlayerTurn] = useState(true); // Default (updates via onTurnChange)
@@ -84,17 +85,17 @@ const GameArena = () => {
 
     // Derived User Info
     const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const myColor = Object.keys(players).find(key => players[key]?.username === localUser.username) === 'w' ? 'w' : 'b'; // default logic
+    const myColor = activeGameMode === 'computer' ? 'w' : (Object.keys(players).find(key => players[key]?.username === localUser.username) === 'w' ? 'w' : 'b');
 
     const me = {
-        username: userInfo.username || "You",
+        ...userInfo, // Spread first so username can be overridden
+        username: (userInfo.username || "You") + (gameId === 'tic-tac-toe' ? " (X)" : ""),
         avatar: userInfo.avatar || "👤",
-        color: myColor,
-        ...userInfo // Include wins, losses, elo
+        color: myColor
     };
 
     const opponent = Object.values(players).find(p => p.username !== localUser.username) || {
-        username: "Opponent",
+        username: "Opponent" + (gameId === 'tic-tac-toe' ? " (O)" : ""),
         avatar: "👤",
         color: myColor === 'w' ? 'b' : 'w'
     };
@@ -107,6 +108,11 @@ const GameArena = () => {
     ].includes(gameId);
 
     // Handlers
+    const handleGameStateChange = (mode, difficulty = null) => {
+        setActiveGameMode(mode);
+        if (difficulty) setActiveDifficulty(difficulty);
+    };
+
     const handleGameEnd = (result) => {
         setIsGameActive(false);
         setWinner(result);
@@ -424,7 +430,7 @@ const GameArena = () => {
                                 <div className="flex-1 flex items-center justify-center py-4 overflow-auto">
                                     <GameBoard
                                         gameId={gameId}
-                                        onGameStateChange={setActiveGameMode}
+                                        onGameStateChange={handleGameStateChange}
                                         onMove={setMoves}
                                         onGameOver={handleGameEnd}
                                         onScoreUpdate={handleScoreUpdate}
@@ -474,6 +480,7 @@ const GameArena = () => {
                                 <GameInfoPanel
                                     user={me}
                                     gameMode={isSinglePlayerGame ? 'single-player' : activeGameMode}
+                                    gameDifficulty={activeDifficulty}
                                     moves={moves}
                                 />
 

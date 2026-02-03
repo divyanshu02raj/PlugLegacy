@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { History, Trophy, Zap, Clock, Target, Users, Lock } from "lucide-react";
 
-const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
+const GameInfoPanel = ({ user, gameMode = "Selection", gameDifficulty = null, moves = [] }) => {
     const scrollRef = useRef(null);
 
     // Auto-scroll to bottom
@@ -39,8 +39,9 @@ const GameInfoPanel = ({ user, gameMode = "Selection", moves = [] }) => {
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Mode</span>
                         <span className="font-medium capitalize truncate pl-2">
-                            {gameMode === 'computer' ? 'Vs Computer' :
-                                (gameMode === 'friend' ? 'Friend Match' :
+                            {gameMode === 'computer'
+                                ? `Vs Computer ${gameDifficulty ? `(${gameDifficulty})` : ''}`
+                                : (gameMode === 'friend' ? 'Friend Match' :
                                     (gameMode === 'single-player' ? 'Single Player' : 'Selection'))}
                         </span>
                     </div>
