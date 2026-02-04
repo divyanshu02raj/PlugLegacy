@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Users, RotateCcw, Trophy, ArrowLeft } from "lucide-react";
+import { Bot, Users, RotateCcw, Trophy, ArrowLeft, Copy, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { authService, userService } from "../../../services/api";
+import { useSocket } from "@/context/SocketContext";
+import TicTacToeFriendLobby from "./TicTacToeFriendLobby";
 
 const checkWinner = (board) => {
     const lines = [
@@ -114,7 +117,9 @@ const DIFFICULTIES = {
     HARD: { name: "Hard", color: "text-red-400", icon: "🔥", scoreMultiplier: 1 },
 };
 
-const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
+const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, roomId, players }) => {
+    const navigate = useNavigate();
+    const { socket } = useSocket();
     const [gameState, setGameState] = useState('menu'); // menu, playing, finished
     const [mode, setMode] = useState(null); // 'computer' or 'friend'
     const [difficulty, setDifficulty] = useState(null); // 'EASY', 'MEDIUM', 'HARD'
@@ -143,6 +148,17 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
         if (onGameStateChange) onGameStateChange('selection');
     }, []);
 
+    // Auto-start when room is available (Deep link or Invite accept)
+    useEffect(() => {
+        if (roomId && gameState !== 'playing' && gameState !== 'finished') {
+            setMode('friend');
+            setGameState('playing');
+            if (onGameStateChange) onGameStateChange('friend');
+        } else if ((gameState === 'waiting' || gameState === 'lobby') && mode === 'friend' && Object.keys(players || {}).length >= 2) {
+            setGameState('playing');
+        }
+    }, [players, gameState, mode, roomId]);
+
     // Show modal with delay after game ends
     useEffect(() => {
         if (isGameOver) {
@@ -157,47 +173,58 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
 
 
 
-    // AI Move (Computer Mode)
-    // AI Move (Computer Mode)
+    // Sync with Online Moves
     useEffect(() => {
-        if (mode === 'computer' && !isXNext && !isGameOver && gameState === 'playing') {
-            // Notify parent about turn change
+        if (mode === 'friend' && roomId && moves.length >= 0) {
+            const newBoard = Array(9).fill(null);
+            moves.forEach((moveIndex, i) => {
+                newBoard[moveIndex] = i % 2 === 0 ? "X" : "O";
+            });
+            setBoard(newBoard);
+            setIsXNext(moves.length % 2 === 0);
+        }
+    }, [moves, mode, roomId]);
+
+    // AI Move (Computer Mode)
+    // AI Move (Computer Mode) and Turn Notification
+    useEffect(() => {
+        // Computer Mode
+        if (mode === 'computer') {
             if (onTurnChange) {
-                // In computer mode: Player is White/X (true), Computer is Black/O (false)
-                // isXNext: true = Player's turn, false = Computer's turn
-                // GameArena expects: true = Player's turn, false = Opponent's turn
                 onTurnChange(isXNext ? 'w' : 'b');
             }
 
-            const timer = setTimeout(() => {
-                let move;
+            if (!isXNext && !isGameOver && gameState === 'playing') {
+                const timer = setTimeout(() => {
+                    let move;
 
-                if (difficulty === 'EASY') {
-                    move = getRandomMove(board);
-                } else if (difficulty === 'MEDIUM') {
-                    // 50% optimal, 50% random
-                    move = Math.random() < 0.5 ? getBestMove(board) : getRandomMove(board);
-                } else {
-                    // HARD - Always optimal
-                    move = getBestMove(board);
-                }
+                    if (difficulty === 'EASY') {
+                        move = getRandomMove(board);
+                    } else if (difficulty === 'MEDIUM') {
+                        // 50% optimal, 50% random
+                        move = Math.random() < 0.5 ? getBestMove(board) : getRandomMove(board);
+                    } else {
+                        // HARD - Always optimal
+                        move = getBestMove(board);
+                    }
 
-                if (move !== null && move !== undefined) {
-                    const newBoard = [...board];
-                    newBoard[move] = "O";
-                    setBoard(newBoard);
-                    setIsXNext(true);
-                }
-            }, 500); // Delay for realism
-
-            return () => clearTimeout(timer);
-        } else {
-            // Notify even when it's player's turn or game over state changes
-            if (onTurnChange && mode === 'computer') {
-                onTurnChange(isXNext ? 'w' : 'b');
+                    if (move !== null && move !== undefined) {
+                        const newBoard = [...board];
+                        newBoard[move] = "O";
+                        setBoard(newBoard);
+                        setIsXNext(true);
+                    }
+                }, 500); // Delay for realism
+                return () => clearTimeout(timer);
             }
         }
-    }, [isXNext, board, mode, difficulty, isGameOver, gameState, onTurnChange]);
+        // Multiplayer Mode
+        else if (mode === 'friend' && onTurnChange) {
+            const isMyTurn = (isXNext && myColor === 'w') || (!isXNext && myColor === 'b');
+            console.log("Turn Change Emit:", { isXNext, myColor, isMyTurn });
+            onTurnChange(isMyTurn);
+        }
+    }, [isXNext, board, mode, difficulty, isGameOver, gameState, onTurnChange, myColor]);
 
     // Save Match on Game End
     useEffect(() => {
@@ -235,6 +262,29 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
 
     const handleCellClick = (index) => {
         if (board[index] || isGameOver || gameState !== 'playing') return;
+
+        // Online Multiplayer Logic
+        if (mode === 'friend' && roomId) {
+            // Determine if it's my turn
+            // MyColor 'w' = X (First), 'b' = O (Second)
+            // isXNext true = X turn, false = O turn
+            const isMyTurn = (isXNext && myColor === 'w') || (!isXNext && myColor === 'b');
+
+            if (isMyTurn) {
+                if (socket) {
+                    socket.emit('game_move', {
+                        roomId,
+                        move: index
+                    });
+                } else {
+                    console.error("Socket missing!");
+                }
+            } else {
+                console.warn("Not my turn!");
+            }
+            return;
+        }
+
         if (mode === 'computer' && !isXNext) return; // Wait for AI
 
         const newBoard = [...board];
@@ -248,6 +298,17 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
         setMode(selectedMode);
         if (onGameStateChange) onGameStateChange(selectedMode, selectedDifficulty);
         setDifficulty(selectedDifficulty);
+
+        // Check for friend online
+        if (selectedMode === 'friend' && roomId && Object.keys(players || {}).length < 2) {
+            setGameState('lobby'); // Was 'waiting'
+            return;
+        } else if (selectedMode === 'friend' && !roomId) {
+            // No room yet - show lobby to invite
+            setGameState('lobby');
+            return;
+        }
+
         setBoard(Array(9).fill(null));
         setIsXNext(true);
         setGameState('playing');
@@ -263,14 +324,24 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
             setShowModal(false);
             hasSavedRef.current = false;
         } else {
-            // Friend mode - ask for confirmation
-            if (confirm('Does your friend want to play again?')) {
+            // Friend mode
+            if (roomId && socket) {
+                // Online reset? usually requires vote. For now just clear local or emit reset
+                // Assuming simple reset for local state
+            }
+
+            // Friend mode - ask for confirmation (Local only)
+            if (!roomId && confirm('Does your friend want to play again?')) {
                 setBoard(Array(9).fill(null));
                 setIsXNext(true);
                 setShowModal(false);
                 hasSavedRef.current = false;
-            } else {
+            } else if (!roomId) {
                 backToMenu();
+            } else {
+                // Online: Just close modal, let them play or wait for opponent
+                setShowModal(false);
+                // Ideally we emit a 'rematch' request here
             }
         }
     };
@@ -281,6 +352,8 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
         setDifficulty(null);
         setBoard(Array(9).fill(null));
         setIsXNext(true);
+        // Clear roomId from location state to prevent auto-start on next friend game
+        navigate('.', { replace: true, state: {} });
     };
 
     return (
@@ -396,6 +469,9 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange }) => {
                         Back
                     </button>
                 </div>
+            ) : gameState === 'lobby' || gameState === 'waiting' ? (
+                /* Friend Lobby */
+                <TicTacToeFriendLobby onBack={backToMenu} />
             ) : (
                 /* Game Board */
                 <>

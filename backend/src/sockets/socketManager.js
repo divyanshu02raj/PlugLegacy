@@ -122,8 +122,15 @@ module.exports = (io) => {
                     senderSocket.join(roomId);
                     recipientSocket.join(roomId);
 
-                    // Assign colors randomly
-                    const whitePlayer = Math.random() > 0.5 ? senderSocket.id : recipientSocket.id;
+                    // Assign colors
+                    let whitePlayer;
+                    if (gameType === 'tic-tac-toe') {
+                        // For Tic-Tac-Toe, Inviter (Sender) is X (White)
+                        whitePlayer = senderSocket.id;
+                    } else {
+                        // Random for others
+                        whitePlayer = Math.random() > 0.5 ? senderSocket.id : recipientSocket.id;
+                    }
 
                     // Fetch User Details to send to clients
                     try {
@@ -178,8 +185,8 @@ module.exports = (io) => {
         });
 
         socket.on('game_move', ({ roomId, move, fen }) => {
-            // Relay move to everyone else in the room
-            socket.to(roomId).emit('opponent_move', { move, fen });
+            // Broadcast to EVERYONE (including sender) so state stays in sync
+            io.to(roomId).emit('game_move', { move, fen });
         });
 
         // --- GAME ACTIONS (Resign/Draw) ---

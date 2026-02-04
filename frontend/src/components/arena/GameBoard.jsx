@@ -34,7 +34,7 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName, blackPlayerName, onTurnChange }, ref) => {
+const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, onScoreUpdate, whitePlayerName, blackPlayerName, onTurnChange, moves, myColor, isPlayerTurn, roomId, players }, ref) => {
     const renderBoard = () => {
         const props = { onTurnChange }; // Helper to pass down
         switch (gameId) {
@@ -45,7 +45,7 @@ const GameBoard = forwardRef(({ gameId, onGameStateChange, onMove, onGameOver, o
             case "logic-grid": return <LogicGridBoard />;
             case "memory-match": return <MemoryMatchBoard />;
             case "number-recall": return <NumberRecallBoard />;
-            case "tic-tac-toe": return <TicTacToeBoard onGameStateChange={onGameStateChange} onTurnChange={onTurnChange} />;
+            case "tic-tac-toe": return <TicTacToeBoard onGameStateChange={onGameStateChange} onTurnChange={onTurnChange} moves={moves} myColor={myColor} isPlayerTurn={isPlayerTurn} roomId={roomId} players={players} onMove={onMove} />;
             case "connect-4": return <Connect4Board />;
             case "chess": return <ChessBoard
                 ref={ref}

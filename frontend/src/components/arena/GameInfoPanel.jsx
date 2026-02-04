@@ -29,24 +29,26 @@ const GameInfoPanel = ({ user, gameMode = "Selection", gameDifficulty = null, mo
             className="h-full flex flex-col gap-4"
         >
             {/* Match Info Card - Fixed Height (~100px) */}
-            <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0 h-[100px] flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-5 h-5 text-primary" />
-                    <h3 className="font-bold">Match Info</h3>
-                </div>
+            {gameMode !== 'selection' && (
+                <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0 h-[100px] flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-5 h-5 text-primary" />
+                        <h3 className="font-bold">Match Info</h3>
+                    </div>
 
-                <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">Mode</span>
-                        <span className="font-medium capitalize truncate pl-2">
-                            {gameMode === 'computer'
-                                ? `Vs Computer ${gameDifficulty ? `(${gameDifficulty})` : ''}`
-                                : (gameMode === 'friend' ? 'Friend Match' :
-                                    (gameMode === 'single-player' ? 'Single Player' : 'Selection'))}
-                        </span>
+                    <div className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Mode</span>
+                            <span className="font-medium capitalize truncate pl-2">
+                                {gameMode === 'computer'
+                                    ? `Vs Computer ${gameDifficulty ? `(${gameDifficulty})` : ''}`
+                                    : (gameMode === 'friend' ? 'Friend Match' :
+                                        (gameMode === 'single-player' ? 'Single Player' : 'Selection'))}
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Your Stats - Fixed Height (~220px) */}
             <div className="glass-card rounded-2xl border border-glass-border p-4 shrink-0 h-[220px] flex flex-col relative overflow-hidden">
@@ -66,11 +68,14 @@ const GameInfoPanel = ({ user, gameMode = "Selection", gameDifficulty = null, mo
                 </div>
 
                 {/* Lock Overlay for Single Player */}
-                {gameMode === 'single-player' && (
+                {/* Lock Overlay for Single Player / Computer / Selection */}
+                {(gameMode === 'single-player' || gameMode === 'computer' || gameMode === 'selection') && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-4">
                         <Lock className="w-8 h-8 text-muted-foreground mb-2" />
                         <p className="text-sm font-bold text-muted-foreground">Stats Unavailable</p>
-                        <p className="text-xs text-muted-foreground/60">Single Player Mode</p>
+                        <p className="text-xs text-muted-foreground/60">
+                            {gameMode === 'selection' ? 'Select a Mode' : 'Single Player Mode'}
+                        </p>
                     </div>
                 )}
             </div>
@@ -137,11 +142,14 @@ const GameInfoPanel = ({ user, gameMode = "Selection", gameDifficulty = null, mo
                 </div>
 
                 {/* Lock Overlay for Single Player */}
-                {gameMode === 'single-player' && (
+                {/* Lock Overlay for Single Player / Computer / Selection */}
+                {(gameMode === 'single-player' || gameMode === 'computer' || gameMode === 'selection') && (
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-4">
                         <Lock className="w-8 h-8 text-muted-foreground mb-2" />
                         <p className="text-sm font-bold text-muted-foreground">History Unavailable</p>
-                        <p className="text-xs text-muted-foreground/60">Single Player Mode</p>
+                        <p className="text-xs text-muted-foreground/60">
+                            {gameMode === 'selection' ? 'Select a Mode' : 'Single Player Mode'}
+                        </p>
                     </div>
                 )}
             </div>

@@ -75,30 +75,52 @@ const GameArena = () => {
 
     // Game State
     const [players, setPlayers] = useState(location.state?.players || {});
+    // Sync players from location state (for navigation updates without remount)
+    useEffect(() => {
+        if (location.state?.players) {
+            setPlayers(location.state.players);
+        }
+    }, [location.state?.players]);
+
     const [moves, setMoves] = useState([]);
     const [activeGameMode, setActiveGameMode] = useState("friend");
     const [activeDifficulty, setActiveDifficulty] = useState(null);
     const [scores, setScores] = useState({ player: 0, opponent: 0 });
     const [isGameActive, setIsGameActive] = useState(true);
-    const [isPlayerTurn, setIsPlayerTurn] = useState(true); // Default (updates via onTurnChange)
+    const [isPlayerTurn, setIsPlayerTurn] = useState(false); // Default false, waits for board update
     const [winner, setWinner] = useState(null);
 
     // Derived User Info
+    // Derived User Info
     const localUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const myColor = activeGameMode === 'computer' ? 'w' : (Object.keys(players).find(key => players[key]?.username === localUser.username) === 'w' ? 'w' : 'b');
+    // Use socket.id if available and present in players (Handles same-user testing)
+    const myPlayerKey = (socket?.id && players[socket.id])
+        ? socket.id
+        : Object.keys(players).find(key => players[key]?.username === localUser.username);
+
+    const myColor = activeGameMode === 'computer' ? 'w' : (players[myPlayerKey]?.color || 'b');
 
     const me = {
         ...userInfo, // Spread first so username can be overridden
-        username: (userInfo.username || "You") + (gameId === 'tic-tac-toe' ? " (X)" : ""),
+        username: (userInfo.username || "You") + (gameId === 'tic-tac-toe' ? (myColor === 'w' ? " (X)" : " (O)") : ""),
         avatar: userInfo.avatar || "👤",
         color: myColor
     };
 
-    const opponent = Object.values(players).find(p => p.username !== localUser.username) || {
-        username: "Opponent" + (gameId === 'tic-tac-toe' ? " (O)" : ""),
-        avatar: "👤",
-        color: myColor === 'w' ? 'b' : 'w'
-    };
+    let opponent = Object.values(players).find(p => p.username !== localUser.username);
+    if (opponent) {
+        // Add suffix to opponent name
+        opponent = {
+            ...opponent,
+            username: opponent.username + (gameId === 'tic-tac-toe' ? (opponent.color === 'w' ? " (X)" : " (O)") : "")
+        };
+    } else {
+        opponent = {
+            username: "Opponent" + (gameId === 'tic-tac-toe' ? (myColor === 'w' ? " (O)" : " (X)") : ""),
+            avatar: "👤",
+            color: myColor === 'w' ? 'b' : 'w'
+        };
+    }
 
     // Games that are strictly single-player for now
     const isSinglePlayerGame = [
@@ -141,8 +163,12 @@ const GameArena = () => {
         }
     };
 
-    const handleTurnChange = (turnColor) => {
-        setIsPlayerTurn(turnColor === me.color);
+    const handleTurnChange = (arg) => {
+        if (typeof arg === 'boolean') {
+            setIsPlayerTurn(arg);
+        } else {
+            setIsPlayerTurn(arg === me.color);
+        }
     };
 
     const roomId = location.state?.roomId; // Extract roomId clearly
@@ -201,6 +227,8 @@ const GameArena = () => {
 
     // Socket: Join Room & Game Events
     useEffect(() => {
+        // Redundant game_started listener removed (handled by InviteListener)
+
         if (!socket || !roomId) return;
 
         console.log("Joining room:", roomId);
@@ -527,11 +555,16 @@ const GameArena = () => {
                                         <GameBoard
                                             ref={boardRef}
                                             gameId={gameId}
-                                            onGameStateChange={setActiveGameMode}
+                                            onGameStateChange={handleGameStateChange}
                                             onMove={setMoves}
                                             onGameOver={handleGameEnd}
                                             onScoreUpdate={handleScoreUpdate}
                                             onTurnChange={handleTurnChange} // Add this prop
+                                            moves={moves}
+                                            myColor={me.color}
+                                            isPlayerTurn={isPlayerTurn}
+                                            roomId={roomId}
+                                            players={players}
                                             whitePlayerName={activeGameMode === 'computer' ? "Your Score" : (players?.[Object.keys(players).find(key => players[key].color === 'w')]?.username || "White")}
                                             blackPlayerName={activeGameMode === 'computer' ? "Computer's Score" : (players?.[Object.keys(players).find(key => players[key].color === 'b')]?.username || "Black")}
                                         />
