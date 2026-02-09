@@ -300,11 +300,14 @@ const CROSSWORD_WORDS = [
 // Generate layouts for each crossword
 const generatedLayouts = CROSSWORD_WORDS.map((words, index) => {
     const layout = generateLayout(words);
+    // Filter out words that weren't placed (orientation: "none")
+    const placedWords = (layout.result || []).filter(word => word.orientation !== 'none');
+
     return {
         id: index + 1,
         title: `Puzzle ${index + 1}`,
         difficulty: index < 10 ? "Easy" : "Medium",
-        ...layoutToGrid(layout.result || layout)
+        ...layoutToGrid(placedWords)
     };
 });
 

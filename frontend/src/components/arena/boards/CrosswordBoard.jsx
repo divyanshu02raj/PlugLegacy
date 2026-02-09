@@ -25,10 +25,27 @@ const CrosswordBoard = () => {
         }
     }, [selected, isSolved]);
 
-    // Load Random Puzzle
+    // Load Random Puzzle with Smart Rotation
     const loadRandomPuzzle = useCallback(() => {
-        const randomIndex = Math.floor(Math.random() * CROSSWORD_LEVELS.length);
-        const level = CROSSWORD_LEVELS[randomIndex];
+        // Get completed puzzle IDs from localStorage
+        const completedPuzzlesStr = localStorage.getItem('crossword_completed_puzzles');
+        let completedPuzzles = completedPuzzlesStr ? JSON.parse(completedPuzzlesStr) : [];
+
+        // If all puzzles are completed, reset the cycle
+        if (completedPuzzles.length >= CROSSWORD_LEVELS.length) {
+            completedPuzzles = [];
+            localStorage.setItem('crossword_completed_puzzles', JSON.stringify([]));
+        }
+
+        // Get available (not yet completed) puzzles
+        const availablePuzzles = CROSSWORD_LEVELS.filter(
+            level => !completedPuzzles.includes(level.id)
+        );
+
+        // Pick a random puzzle from available ones
+        const randomIndex = Math.floor(Math.random() * availablePuzzles.length);
+        const level = availablePuzzles[randomIndex];
+
         setCurrentPuzzle(level);
         // Deep copy grid to avoid mutation ref issues
         const newBoard = level.grid.map(row => row.map(cell => ({ ...cell, letter: "" })));
@@ -60,7 +77,7 @@ const CrosswordBoard = () => {
     };
 
     const checkWin = useCallback(() => {
-        if (board.length === 0) return;
+        if (board.length === 0 || !currentPuzzle) return;
 
         let allCorrect = true;
         for (let r = 0; r < board.length; r++) {
@@ -72,8 +89,20 @@ const CrosswordBoard = () => {
                 }
             }
         }
-        if (allCorrect) setIsSolved(true);
-    }, [board]);
+
+        if (allCorrect && !isSolved) {
+            setIsSolved(true);
+
+            // Mark puzzle as completed in localStorage
+            const completedPuzzlesStr = localStorage.getItem('crossword_completed_puzzles');
+            let completedPuzzles = completedPuzzlesStr ? JSON.parse(completedPuzzlesStr) : [];
+
+            if (!completedPuzzles.includes(currentPuzzle.id)) {
+                completedPuzzles.push(currentPuzzle.id);
+                localStorage.setItem('crossword_completed_puzzles', JSON.stringify(completedPuzzles));
+            }
+        }
+    }, [board, currentPuzzle, isSolved]);
 
     useEffect(() => {
         checkWin();
@@ -208,17 +237,20 @@ const CrosswordBoard = () => {
             setBoard(newBoard);
 
             // Auto-advance logic
-            // Checks if word is complete could be here, but simpler to just move
             if (direction === "across") {
                 let nextCol = col + 1;
-                while (nextCol < board[0].length && board[row][nextCol].isBlack) nextCol++;
-                if (nextCol < board[0].length) {
+                while (nextCol < board[0].length && board[row][nextCol].isBlack) {
+                    nextCol++;
+                }
+                if (nextCol < board[0].length && !board[row][nextCol].isBlack) {
                     setSelected({ row, col: nextCol });
                 }
             } else { // direction === "down"
                 let nextRow = row + 1;
-                while (nextRow < board.length && board[nextRow][col].isBlack) nextRow++;
-                if (nextRow < board.length) {
+                while (nextRow < board.length && board[nextRow][col].isBlack) {
+                    nextRow++;
+                }
+                if (nextRow < board.length && !board[nextRow][col].isBlack) {
                     setSelected({ row: nextRow, col });
                 }
             }
