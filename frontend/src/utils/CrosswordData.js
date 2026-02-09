@@ -1,143 +1,311 @@
-export const CROSSWORD_LEVELS = [
-    {
-        id: 1,
-        title: "Animals",
-        grid: [
-            // 7x7 Grid
-            [{ letter: "", isBlack: false, number: 1, answer: "C" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, answer: "T" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 2, answer: "D" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "G" }],
-            [{ letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "W" }, { letter: "", isBlack: false, number: 3, answer: "B" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: false, answer: "D" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, number: 4, answer: "F" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: false, answer: "H" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }]
-        ],
-        clues: {
-            across: [
-                { number: 1, clue: "Feline pets" },              // CATS
-                { number: 2, clue: "Canine pet" },               // DOG
-                { number: 3, clue: "Flying animals" },           // BIRDS
-                { number: 4, clue: "Aquatic animal" }            // FISH
-            ],
-            down: [
-                { number: 1, clue: "Farm animals" },             // COWS (C-O-W-S)
-                { number: 2, clue: "Waterfowl" },                // DUCKS (D-U-C-K-S) - wait only D-U
-                { number: 3, clue: "Honey makers" }              // BEARS (B-E-A-R-S)
-            ]
-        }
-    },
-    {
-        id: 2,
-        title: "Food & Cooking",
-        grid: [
-            // 8x8 Grid
-            [{ letter: "", isBlack: false, number: 1, answer: "B" }, { letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, answer: "D" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 2, answer: "M" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "L" }, { letter: "", isBlack: false, answer: "K" }],
-            [{ letter: "", isBlack: false, answer: "K" }, { letter: "", isBlack: false, number: 3, answer: "R" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "C" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 4, answer: "M" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, answer: "T" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 5, answer: "E" }, { letter: "", isBlack: false, answer: "G" }, { letter: "", isBlack: false, answer: "G" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }]
-        ],
-        clues: {
-            across: [
-                { number: 1, clue: "Baked loaf" },               // BREAD
-                { number: 2, clue: "Dairy drink" },              // MILK
-                { number: 3, clue: "Grain staple" },             // RICE
-                { number: 4, clue: "Protein food" },             // MEAT
-                { number: 5, clue: "Breakfast food" }            // EGGS
-            ],
-            down: [
-                { number: 1, clue: "Cooking method" },           // BAKE (B-A-K-E)
-                { number: 2, clue: "Dairy drink" }               // MILK (duplicate)
-            ]
-        }
-    },
-    {
-        id: 3,
-        title: "Sports & Games",
-        grid: [
-            // 7x7 Grid
-            [{ letter: "", isBlack: false, number: 1, answer: "R" }, { letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 2, answer: "S" }, { letter: "", isBlack: false, answer: "K" }, { letter: "", isBlack: false, answer: "I" }],
-            [{ letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "W" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "C" }, { letter: "", isBlack: false, number: 3, answer: "S" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "C" }, { letter: "", isBlack: false, answer: "C" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "R" }],
-            [{ letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "W" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, number: 4, answer: "T" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "S" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "M" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }]
-        ],
-        clues: {
-            across: [
-                { number: 1, clue: "Sprint" },                   // RUN
-                { number: 2, clue: "Winter sport" },             // SKI
-                { number: 3, clue: "Football game" },            // SOCCER
-                { number: 4, clue: "Racket sport" }              // TENNIS
-            ],
-            down: [
-                { number: 1, clue: "Competition" },              // RACE (R-A-C-E)
-                { number: 2, clue: "Water activity" },           // SWIM (S-W-I-M)
-                { number: 3, clue: "Water activity" }            // SWIM (duplicate)
-            ]
-        }
-    },
-    {
-        id: 4,
-        title: "Nature & Weather",
-        grid: [
-            // 8x8 Grid
-            [{ letter: "", isBlack: false, number: 1, answer: "T" }, { letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "H" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 2, answer: "R" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, answer: "I" }, { letter: "", isBlack: false, answer: "N" }],
-            [{ letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: false, number: 3, answer: "C" }, { letter: "", isBlack: false, answer: "L" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: false, answer: "D" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "D" }, { letter: "", isBlack: false, number: 4, answer: "S" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "W" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }]
-        ],
-        clues: {
-            across: [
-                { number: 1, clue: "Tall plants" },              // TREES
-                { number: 2, clue: "Water from sky" },           // RAIN
-                { number: 3, clue: "Sky formations" },           // CLOUDS
-                { number: 4, clue: "White winter weather" }      // SNOW
-            ],
-            down: [
-                { number: 1, clue: "Storm sound" },              // THUNDER (T-H-U-N-D-E-R)
-                { number: 2, clue: "Water from sky" },           // RAIN (duplicate)
-                { number: 3, clue: "Sky formations" },           // CLOUDS (duplicate)
-                { number: 4, clue: "Bright star" }               // SUN (S-U-N)
-            ]
-        }
-    },
-    {
-        id: 5,
-        title: "School & Learning",
-        grid: [
-            // 7x7 Grid
-            [{ letter: "", isBlack: false, number: 1, answer: "P" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "N" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, number: 2, answer: "B" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "O" }, { letter: "", isBlack: false, answer: "K" }, { letter: "", isBlack: false, answer: "S" }],
-            [{ letter: "", isBlack: false, answer: "P" }, { letter: "", isBlack: false, number: 3, answer: "D" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "S" }, { letter: "", isBlack: false, answer: "K" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: false, number: 4, answer: "R" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: false, answer: "A" }, { letter: "", isBlack: false, answer: "D" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "U" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "L" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "E" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }],
-            [{ letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: false, answer: "R" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }, { letter: "", isBlack: true, answer: "" }]
-        ],
-        clues: {
-            across: [
-                { number: 1, clue: "Writing tools" },            // PENS
-                { number: 2, clue: "Reading materials" },        // BOOKS
-                { number: 3, clue: "Study table" },              // DESK
-                { number: 4, clue: "Study activity" }            // READ
-            ],
-            down: [
-                { number: 1, clue: "Sheets of writing" },        // PAPER (P-A-P-E-R)
-                { number: 2, clue: "Reading materials" },        // BOOKS (duplicate)
-                { number: 3, clue: "Measuring tool" },           // DRULER (D-R-U-L-E-R) - wait that's not right
-                { number: 4, clue: "Measuring stick" }           // RULER (R-U-L-E-R)
-            ]
-        }
+import { generateLayout } from 'crossword-layout-generator';
+
+// Helper function to convert layout to grid format
+function layoutToGrid(layout) {
+    if (!layout || layout.length === 0) return { grid: [], clues: { across: [], down: [] } };
+
+    // Find grid dimensions
+    let maxRow = 0;
+    let maxCol = 0;
+    layout.forEach(word => {
+        const endRow = word.starty + (word.orientation === 'down' ? word.answer.length - 1 : 0);
+        const endCol = word.startx + (word.orientation === 'across' ? word.answer.length - 1 : 0);
+        maxRow = Math.max(maxRow, endRow);
+        maxCol = Math.max(maxCol, endCol);
+    });
+
+    // Validate dimensions to prevent invalid array length errors
+    if (maxRow < 0 || maxCol < 0 || maxRow > 100 || maxCol > 100) {
+        console.error('Invalid grid dimensions:', maxRow, maxCol);
+        return { grid: [], clues: { across: [], down: [] } };
     }
+
+    // Create empty grid
+    const grid = Array(maxRow + 1).fill(null).map(() =>
+        Array(maxCol + 1).fill(null).map(() => ({
+            letter: "",
+            isBlack: true,
+            answer: ""
+        }))
+    );
+
+    // Fill in words
+    const clues = { across: [], down: [] };
+    let clueNumber = 1;
+    const numberMap = new Map();
+
+    // Sort by position (top to bottom, left to right)
+    const sortedLayout = [...layout].sort((a, b) => {
+        if (a.starty !== b.starty) return a.starty - b.starty;
+        return a.startx - b.startx;
+    });
+
+    sortedLayout.forEach(word => {
+        const key = `${word.starty},${word.startx}`;
+        if (!numberMap.has(key)) {
+            numberMap.set(key, clueNumber++);
+        }
+        const number = numberMap.get(key);
+
+        for (let i = 0; i < word.answer.length; i++) {
+            const row = word.orientation === 'down' ? word.starty + i : word.starty;
+            const col = word.orientation === 'across' ? word.startx + i : word.startx;
+
+            grid[row][col] = {
+                letter: "",
+                isBlack: false,
+                answer: word.answer[i],
+                number: i === 0 ? number : undefined
+            };
+        }
+
+        clues[word.orientation].push({
+            number,
+            clue: word.clue
+        });
+    });
+
+    return { grid, clues };
+}
+
+// Define all crossword word sets
+const CROSSWORD_WORDS = [
+    // Crossword 1
+    [
+        { answer: "PARIS", clue: "Capital of France" },
+        { answer: "HOT", clue: "Opposite of cold" },
+        { answer: "COMPUTER", clue: "Device used to compute" },
+        { answer: "JUPITER", clue: "Largest planet" },
+        { answer: "RED", clue: "Primary color" },
+        { answer: "APRIL", clue: "Month after March" }
+    ],
+    // Crossword 2
+    [
+        { answer: "CHEETAH", clue: "Fast animal" },
+        { answer: "SATURDAY", clue: "Day after Friday" },
+        { answer: "WATER", clue: "Liquid we drink" },
+        { answer: "OXYGEN", clue: "Gas we breathe" },
+        { answer: "WEEK", clue: "7 days make a ___" },
+        { answer: "SHORT", clue: "Opposite of tall" }
+    ],
+    // Crossword 3
+    [
+        { answer: "JAVA", clue: "Programming language by Sun" },
+        { answer: "SUN", clue: "Star at center of solar system" },
+        { answer: "PHONE", clue: "Device to call someone" },
+        { answer: "OWL", clue: "Bird that hoots" },
+        { answer: "LOSE", clue: "Opposite of win" },
+        { answer: "ICECREAM", clue: "Ice + cream = ___" }
+    ],
+    // Crossword 4
+    [
+        { answer: "DIAMOND", clue: "Hard natural substance" },
+        { answer: "DOWN", clue: "Opposite of up" },
+        { answer: "PACIFIC", clue: "Largest ocean" },
+        { answer: "FOUR", clue: "2 + 2 =" },
+        { answer: "GOOGLE", clue: "Web search giant" },
+        { answer: "STAR", clue: "Night sky light" }
+    ],
+    // Crossword 5
+    [
+        { answer: "EARTH", clue: "Planet we live on" },
+        { answer: "RACE", clue: "Fast running sport" },
+        { answer: "NIGHT", clue: "Opposite of day" },
+        { answer: "LION", clue: "King of jungle" },
+        { answer: "ICE", clue: "Frozen water" },
+        { answer: "YEAR", clue: "12 months make a ___" }
+    ],
+    // Crossword 6
+    [
+        { answer: "INSTAGRAM", clue: "Social media platform" },
+        { answer: "RIGHT", clue: "Opposite of left" },
+        { answer: "TRIANGLE", clue: "Shape with three sides" },
+        { answer: "KEYBOARD", clue: "Device to type" },
+        { answer: "CLOSED", clue: "Opposite of open" },
+        { answer: "MINUTE", clue: "60 seconds make a ___" }
+    ],
+    // Crossword 7
+    [
+        { answer: "DOLLAR", clue: "Currency of USA" },
+        { answer: "LIGHT", clue: "Opposite of dark" },
+        { answer: "LPG", clue: "Gas for cooking" },
+        { answer: "DIWALI", clue: "Indian festival of lights" },
+        { answer: "SELL", clue: "Opposite of buy" },
+        { answer: "DAY", clue: "24 hours make a ___" }
+    ],
+    // Crossword 8
+    [
+        { answer: "WHALE", clue: "Largest mammal" },
+        { answer: "DEBUG", clue: "Programming term for bug fixing" },
+        { answer: "SLOW", clue: "Opposite of fast" },
+        { answer: "LAPTOP", clue: "Device to browse internet" },
+        { answer: "DELHI", clue: "Capital of India" },
+        { answer: "CENTURY", clue: "100 years" }
+    ],
+    // Crossword 9
+    [
+        { answer: "POOR", clue: "Opposite of rich" },
+        { answer: "APPLE", clue: "Red fruit" },
+        { answer: "CSS", clue: "Language for styling web" },
+        { answer: "TEN", clue: "5 + 5" },
+        { answer: "BIKE", clue: "Vehicle with two wheels" },
+        { answer: "ARMSTRONG", clue: "First man on moon" }
+    ],
+    // Crossword 10
+    [
+        { answer: "EMPTY", clue: "Opposite of full" },
+        { answer: "USB", clue: "Data storage device" },
+        { answer: "NILE", clue: "River in Egypt" },
+        { answer: "ASIA", clue: "Largest continent" },
+        { answer: "CAMERA", clue: "Device to take photos" },
+        { answer: "DOG", clue: "Animal that barks" }
+    ],
+    // Crossword 11
+    [
+        { answer: "FALSE", clue: "Opposite of true" },
+        { answer: "SQUARE", clue: "Shape with four equal sides" },
+        { answer: "END", clue: "Opposite of begin" },
+        { answer: "SPIDER", clue: "8 legs animal" },
+        { answer: "SOUTH", clue: "Opposite of north" },
+        { answer: "REMOTE", clue: "Device to watch TV" }
+    ],
+    // Crossword 12
+    [
+        { answer: "CHEETAH", clue: "Fastest land animal" },
+        { answer: "LATE", clue: "Opposite of early" },
+        { answer: "HONEY", clue: "Sweet made by bees" },
+        { answer: "TOKYO", clue: "Capital of Japan" },
+        { answer: "LOW", clue: "Opposite of high" },
+        { answer: "PRINTER", clue: "Device to print" }
+    ],
+    // Crossword 13
+    [
+        { answer: "FAILURE", clue: "Opposite of success" },
+        { answer: "MARS", clue: "Planet known as red planet" },
+        { answer: "JAVASCRIPT", clue: "Programming language for web" },
+        { answer: "WEAK", clue: "Opposite of strong" },
+        { answer: "CIRCLE", clue: "Shape with no sides" },
+        { answer: "YEAR", clue: "365 days" }
+    ],
+    // Crossword 14
+    [
+        { answer: "RUPEES", clue: "Indian currency" },
+        { answer: "SLOW", clue: "Opposite of fast" },
+        { answer: "ELEPHANT", clue: "Animal with trunk" },
+        { answer: "ENEMY", clue: "Opposite of friend" },
+        { answer: "CALCULATOR", clue: "Device to calculate" },
+        { answer: "ICE", clue: "Frozen dessert" }
+    ],
+    // Crossword 15
+    [
+        { answer: "CRY", clue: "Opposite of laugh" },
+        { answer: "HELIUM", clue: "Gas used in balloons" },
+        { answer: "LINKEDIN", clue: "Social network for jobs" },
+        { answer: "DRY", clue: "Opposite of wet" },
+        { answer: "HTML", clue: "Web page language" },
+        { answer: "HOUR", clue: "60 minutes" }
+    ],
+    // Crossword 16
+    [
+        { answer: "HATE", clue: "Opposite of love" },
+        { answer: "HEADPHONE", clue: "Device to listen music" },
+        { answer: "FAR", clue: "Opposite of near" },
+        { answer: "TIGER", clue: "Indian national animal" },
+        { answer: "HARD", clue: "Opposite of soft" },
+        { answer: "KILOMETER", clue: "1000 meters" }
+    ],
+    // Crossword 17
+    [
+        { answer: "SAD", clue: "Opposite of happy" },
+        { answer: "SAHARA", clue: "Largest desert" },
+        { answer: "CONSOLE", clue: "Device for gaming" },
+        { answer: "PULL", clue: "Opposite of push" },
+        { answer: "WEST", clue: "Opposite of east" },
+        { answer: "CLOCK", clue: "Device to measure time" }
+    ],
+    // Crossword 18
+    [
+        { answer: "LIGHT", clue: "Opposite of heavy" },
+        { answer: "ORANGE", clue: "Red + Yellow =" },
+        { answer: "MONITOR", clue: "Part of computer to see output" },
+        { answer: "NEW", clue: "Opposite of old" },
+        { answer: "TRIANGLE", clue: "3 sides shape" },
+        { answer: "JACKSON", clue: "King of pop" }
+    ],
+    // Crossword 19
+    [
+        { answer: "REJECT", clue: "Opposite of accept" },
+        { answer: "PHONE", clue: "Device to talk" },
+        { answer: "FALCON", clue: "Fast bird" },
+        { answer: "TAKE", clue: "Opposite of give" },
+        { answer: "BUG", clue: "Programming error" },
+        { answer: "LONDON", clue: "Capital of UK" }
+    ],
+    // Crossword 20
+    [
+        { answer: "COLD", clue: "Opposite of hot" },
+        { answer: "PACIFIC", clue: "Largest ocean" },
+        { answer: "ROCKET", clue: "Vehicle for space" },
+        { answer: "FAST", clue: "Opposite of slow" },
+        { answer: "COMPUTER", clue: "Device to compute" },
+        { answer: "RIGHT", clue: "90 degrees angle" }
+    ],
+    // Crossword 21
+    [
+        { answer: "DIRTY", clue: "Opposite of clean" },
+        { answer: "CSHARP", clue: "Programming language by Microsoft" },
+        { answer: "CARBON", clue: "Gas plant uses" },
+        { answer: "SMALL", clue: "Opposite of big" },
+        { answer: "PENTAGON", clue: "Shape with 5 sides" },
+        { answer: "JUBILEE", clue: "50 years" }
+    ],
+    // Crossword 22
+    [
+        { answer: "DULL", clue: "Opposite of smart" },
+        { answer: "ROME", clue: "Capital of Italy" },
+        { answer: "COW", clue: "Animal that gives milk" },
+        { answer: "EXIT", clue: "Opposite of entry" },
+        { answer: "BROWSER", clue: "Device to surf web" },
+        { answer: "STRAIGHT", clue: "180 degrees" }
+    ],
+    // Crossword 23
+    [
+        { answer: "WEAK", clue: "Opposite of strong" },
+        { answer: "DISK", clue: "Device to store data" },
+        { answer: "PENGUIN", clue: "Bird that swims" },
+        { answer: "SELL", clue: "Opposite of buy" },
+        { answer: "CAR", clue: "4 wheels vehicle" },
+        { answer: "WASHINGTON", clue: "Capital of USA" }
+    ],
+    // Crossword 24
+    [
+        { answer: "LOSS", clue: "Opposite of gain" },
+        { answer: "PYTHON", clue: "Programming language" },
+        { answer: "ENEMY", clue: "Opposite of friend" },
+        { answer: "DECADE", clue: "10 years" },
+        { answer: "DOWN", clue: "Opposite of up" },
+        { answer: "GMAIL", clue: "Device to send mail" }
+    ],
+    // Crossword 25
+    [
+        { answer: "SOFT", clue: "Opposite of hard" },
+        { answer: "DELHI", clue: "Indian capital" },
+        { answer: "RADIO", clue: "Device for communication" },
+        { answer: "FAIL", clue: "Opposite of success" },
+        { answer: "TWO", clue: "1 + 1" },
+        { answer: "SATURN", clue: "Planet known for rings" }
+    ]
 ];
+
+// Generate layouts for each crossword
+const generatedLayouts = CROSSWORD_WORDS.map((words, index) => {
+    const layout = generateLayout(words);
+    return {
+        id: index + 1,
+        title: `Puzzle ${index + 1}`,
+        difficulty: index < 10 ? "Easy" : "Medium",
+        ...layoutToGrid(layout.result || layout)
+    };
+});
+
+export const CROSSWORD_LEVELS = generatedLayouts;

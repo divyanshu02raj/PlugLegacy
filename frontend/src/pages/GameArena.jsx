@@ -270,11 +270,36 @@ const GameArena = () => {
         socket.on("opponent_resigned", handleOpponentResigned);
         socket.on("draw_offered", handleDrawOffered);
 
+        socket.on("game_restarted", ({ newPlayers }) => {
+            console.log("Game Restarted (Arena):", newPlayers);
+            if (newPlayers) {
+                // Update players state with new colors/assignments
+                setPlayers(prev => {
+                    const updated = { ...prev };
+                    Object.keys(newPlayers).forEach(sid => {
+                        // Ensure we keep existing data like username/avatar if missing in newPlayers
+                        // But newPlayers usually has complete data from socketManager
+                        if (updated[sid]) {
+                            updated[sid] = { ...updated[sid], ...newPlayers[sid] };
+                        } else {
+                            updated[sid] = newPlayers[sid];
+                        }
+                    });
+                    return updated;
+                });
+            }
+            setMoves([]);
+            setWinner(null);
+            setIsGameActive(true);
+            setScores(prev => ({ ...prev })); // Force re-render if needed?
+        });
+
         return () => {
             socket.off("game_move", handleGameMove);
             socket.off("game_over", handleGameEndEvent);
             socket.off("opponent_resigned", handleOpponentResigned);
             socket.off("draw_offered", handleDrawOffered);
+            socket.off("game_restarted");
         };
     }, [socket, roomId, me.color]);
 

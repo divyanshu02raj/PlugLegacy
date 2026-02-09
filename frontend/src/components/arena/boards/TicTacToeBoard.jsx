@@ -127,6 +127,7 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
     const [isXNext, setIsXNext] = useState(true);
     const [stats, setStats] = useState({ wins: 0, losses: 0, draws: 0 });
     const [showModal, setShowModal] = useState(false);
+    const [rematchStatus, setRematchStatus] = useState('idle'); // 'idle', 'offering', 'receiving'
     const hasSavedRef = useRef(false);
     const cellRefs = useRef([]);
     const boardRef = useRef(null);
@@ -225,6 +226,44 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
             onTurnChange(isMyTurn);
         }
     }, [isXNext, board, mode, difficulty, isGameOver, gameState, onTurnChange, myColor]);
+
+    // Rematch Listeners
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleReceiveRematch = () => {
+            console.log("RECEIVED REMATCH OFFER. Mode:", mode, "IsGameOver:", isGameOver);
+            // Only if in Friend mode and game over (or close to it)
+            if (mode === 'friend') {
+                setRematchStatus('receiving');
+                setShowModal(true); // Ensure modal is open
+            }
+        };
+
+        const handleRematchRejected = () => {
+            console.log("REMATCH REJECTED");
+            setRematchStatus('idle');
+            alert("Opponent declined the rematch.");
+            // Maybe go back to lobby or just stay?
+        };
+
+        const handleGameRestarted = () => {
+            console.log("GAME RESTARTED (Board)");
+            setRematchStatus('idle');
+            setShowModal(false);
+            hasSavedRef.current = false;
+        };
+
+        socket.on('receive_rematch_offer', handleReceiveRematch);
+        socket.on('rematch_rejected', handleRematchRejected);
+        socket.on('game_restarted', handleGameRestarted);
+
+        return () => {
+            socket.off('receive_rematch_offer', handleReceiveRematch);
+            socket.off('rematch_rejected', handleRematchRejected);
+            socket.off('game_restarted', handleGameRestarted);
+        };
+    }, [socket, mode, isGameOver]);
 
     // Save Match on Game End
     useEffect(() => {
@@ -326,22 +365,16 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
         } else {
             // Friend mode
             if (roomId && socket) {
-                // Online reset? usually requires vote. For now just clear local or emit reset
-                // Assuming simple reset for local state
-            }
-
-            // Friend mode - ask for confirmation (Local only)
-            if (!roomId && confirm('Does your friend want to play again?')) {
-                setBoard(Array(9).fill(null));
-                setIsXNext(true);
-                setShowModal(false);
-                hasSavedRef.current = false;
-            } else if (!roomId) {
-                backToMenu();
+                console.log("OFFERING REMATCH. Room:", roomId);
+                // Emit Rematch Offer
+                socket.emit('offer_rematch', { roomId });
+                setRematchStatus('offering');
             } else {
-                // Online: Just close modal, let them play or wait for opponent
+                // Fallback
+                navigate('.', { replace: true, state: {} });
                 setShowModal(false);
-                // Ideally we emit a 'rematch' request here
+                setGameState('lobby');
+                hasSavedRef.current = false;
             }
         }
     };
@@ -686,7 +719,16 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
                                             </motion.div>
 
                                             <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent mb-2">
-                                                {winner === 'X' ? 'You Win!' : 'Opponent Won!'}
+                                                {(() => {
+                                                    if (mode === 'computer') {
+                                                        return winner === 'X' ? 'You Win!' : 'Computer Won!';
+                                                    }
+                                                    // Multiplayer: Find explicit username
+                                                    // 'w' -> White Player, 'b' -> Black Player
+                                                    const winnerColor = winner === 'X' ? 'w' : 'b';
+                                                    const winnerPlayer = Object.values(players || {}).find(p => p.color === winnerColor);
+                                                    return winnerPlayer ? `${winnerPlayer.username} Won!` : `${winner} Won!`;
+                                                })()}
                                             </h2>
                                             {mode === 'computer' && (
                                                 <p className="text-muted-foreground mb-6">
@@ -694,14 +736,61 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
                                                 </p>
                                             )}
 
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={resetGame}
-                                                className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-orange-500 text-white font-bold hover:shadow-lg hover:shadow-primary/50 transition-all"
-                                            >
-                                                Play Again
-                                            </motion.button>
+                                            <div className="space-y-3 w-full">
+                                                {rematchStatus === 'idle' && (
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={resetGame}
+                                                        className="w-full py-3 rounded-xl bg-gradient-to-r from-primary to-orange-500 text-white font-bold hover:shadow-lg hover:shadow-primary/50 transition-all"
+                                                    >
+                                                        Play Again
+                                                    </motion.button>
+                                                )}
+
+                                                {rematchStatus === 'offering' && (
+                                                    <div className="w-full py-3 rounded-xl bg-white/10 text-white font-bold animate-pulse">
+                                                        Waiting for Opponent...
+                                                    </div>
+                                                )}
+
+                                                {rematchStatus === 'receiving' && (
+                                                    <div className="flex gap-2">
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => socket.emit('respond_rematch', { roomId, accepted: true })}
+                                                            className="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold hover:shadow-lg transition-all"
+                                                        >
+                                                            Accept Rematch
+                                                        </motion.button>
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                socket.emit('respond_rematch', { roomId, accepted: false });
+                                                                setRematchStatus('idle');
+                                                            }}
+                                                            className="flex-1 py-3 rounded-xl bg-red-500/80 text-white font-bold hover:bg-red-500 transition-all"
+                                                        >
+                                                            Decline
+                                                        </motion.button>
+                                                    </div>
+                                                )}
+
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        setShowModal(false);
+                                                        if (onGameStateChange) onGameStateChange('selection');
+                                                        navigate('/games');
+                                                    }}
+                                                    className="w-full py-3 rounded-xl bg-glass border border-glass-border text-white font-bold hover:bg-white/10 transition-all"
+                                                >
+                                                    Back to Main
+                                                </motion.button>
+                                            </div>
                                         </>
                                     ) : (
                                         <>
@@ -721,14 +810,28 @@ const TicTacToeBoard = ({ onGameStateChange, onTurnChange, moves = [], myColor, 
                                                 <p className="text-muted-foreground mb-6">+25 points</p>
                                             )}
 
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={resetGame}
-                                                className="w-full py-3 rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold hover:shadow-lg transition-all"
-                                            >
-                                                Play Again
-                                            </motion.button>
+                                            <div className="space-y-3 w-full">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={resetGame}
+                                                    className="w-full py-3 rounded-xl bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold hover:shadow-lg transition-all"
+                                                >
+                                                    Play Again
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        setShowModal(false);
+                                                        if (onGameStateChange) onGameStateChange('selection');
+                                                        navigate('/arena');
+                                                    }}
+                                                    className="w-full py-3 rounded-xl bg-glass border border-glass-border text-white font-bold hover:bg-white/10 transition-all"
+                                                >
+                                                    Back to Main
+                                                </motion.button>
+                                            </div>
                                         </>
                                     )}
                                 </motion.div>
