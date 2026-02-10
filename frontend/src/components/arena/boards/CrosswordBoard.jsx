@@ -256,8 +256,44 @@ const CrosswordBoard = () => {
 
     const isHighlighted = (row, col) => {
         if (!selected) return false;
-        if (direction === "across") return row === selected.row && !board[row][col].isBlack;
-        return col === selected.col && !board[row][col].isBlack;
+
+        if (direction === "across") {
+            // Only highlight if on the same row
+            if (row !== selected.row) return false;
+            if (board[row][col].isBlack) return false;
+
+            // Find the start and end of the word containing the selected cell
+            let startCol = selected.col;
+            while (startCol > 0 && !board[row][startCol - 1].isBlack) {
+                startCol--;
+            }
+
+            let endCol = selected.col;
+            while (endCol < board[row].length - 1 && !board[row][endCol + 1].isBlack) {
+                endCol++;
+            }
+
+            // Highlight only if this cell is within the word boundaries
+            return col >= startCol && col <= endCol;
+        } else {
+            // Only highlight if on the same column
+            if (col !== selected.col) return false;
+            if (board[row][col].isBlack) return false;
+
+            // Find the start and end of the word containing the selected cell
+            let startRow = selected.row;
+            while (startRow > 0 && !board[startRow - 1][col].isBlack) {
+                startRow--;
+            }
+
+            let endRow = selected.row;
+            while (endRow < board.length - 1 && !board[endRow + 1][col].isBlack) {
+                endRow++;
+            }
+
+            // Highlight only if this cell is within the word boundaries
+            return row >= startRow && row <= endRow;
+        }
     };
 
 
@@ -287,6 +323,7 @@ const CrosswordBoard = () => {
                 </button>
             </div>
 
+
             {/* Main Content: Vertical Stack */}
             <div className="flex flex-col flex-1 min-h-0 gap-4 overflow-hidden">
                 {/* Board - Centered and constrained to leave room for clues */}
@@ -311,8 +348,91 @@ const CrosswordBoard = () => {
                                             whileHover={!cell.isBlack ? { scale: 1.05 } : {}}
                                             onClick={() => {
                                                 if (!cell.isBlack) {
+                                                    // If clicking the same cell, toggle direction
+                                                    if (selected?.row === rowIdx && selected?.col === colIdx) {
+                                                        const newDirection = direction === 'across' ? 'down' : 'across';
+                                                        setDirection(newDirection);
+
+                                                        // Find the clue number for this word by searching backwards
+                                                        let clueNum = null;
+                                                        if (newDirection === 'across') {
+                                                            // Search left to find the start of the across word
+                                                            for (let c = colIdx; c >= 0 && !board[rowIdx][c].isBlack; c--) {
+                                                                if (board[rowIdx][c].clueNumber) {
+                                                                    clueNum = board[rowIdx][c].clueNumber;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // Search up to find the start of the down word
+                                                            for (let r = rowIdx; r >= 0 && !board[r][colIdx].isBlack; r--) {
+                                                                if (board[r][colIdx].clueNumber) {
+                                                                    clueNum = board[r][colIdx].clueNumber;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Find and set the clue
+                                                        if (clueNum) {
+                                                            const clueList = newDirection === 'across' ? clues.across : clues.down;
+                                                            const foundClue = clueList.find(c => c.number === clueNum);
+                                                            if (foundClue) {
+                                                                setCurrentClue(foundClue);
+                                                            }
+                                                        }
+                                                    } else {
+                                                        // Auto-detect direction based on available cells
+                                                        // Check if there's a non-black cell below (down word)
+                                                        const hasDownCell = rowIdx + 1 < board.length && !board[rowIdx + 1][colIdx].isBlack;
+                                                        // Check if there's a non-black cell to the right (across word)
+                                                        const hasAcrossCell = colIdx + 1 < board[rowIdx].length && !board[rowIdx][colIdx + 1].isBlack;
+
+                                                        let detectedDirection = direction; // Keep current by default
+
+                                                        // Set direction based on available cells
+                                                        if (hasDownCell && !hasAcrossCell) {
+                                                            detectedDirection = 'down';
+                                                            setDirection('down');
+                                                        } else if (hasAcrossCell && !hasDownCell) {
+                                                            detectedDirection = 'across';
+                                                            setDirection('across');
+                                                        } else if (hasDownCell && hasAcrossCell) {
+                                                            // Both directions available - prefer down
+                                                            detectedDirection = 'down';
+                                                            setDirection('down');
+                                                        }
+
+                                                        // Find the clue number by searching backwards in the detected direction
+                                                        let clueNum = null;
+                                                        if (detectedDirection === 'across') {
+                                                            // Search left to find the start of the across word
+                                                            for (let c = colIdx; c >= 0 && !board[rowIdx][c].isBlack; c--) {
+                                                                if (board[rowIdx][c].clueNumber) {
+                                                                    clueNum = board[rowIdx][c].clueNumber;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // Search up to find the start of the down word
+                                                            for (let r = rowIdx; r >= 0 && !board[r][colIdx].isBlack; r--) {
+                                                                if (board[r][colIdx].clueNumber) {
+                                                                    clueNum = board[r][colIdx].clueNumber;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Find and set the clue
+                                                        if (clueNum) {
+                                                            const clueList = detectedDirection === 'across' ? clues.across : clues.down;
+                                                            const foundClue = clueList.find(c => c.number === clueNum);
+                                                            if (foundClue) {
+                                                                setCurrentClue(foundClue);
+                                                            }
+                                                        }
+                                                    }
                                                     setSelected({ row: rowIdx, col: colIdx });
-                                                    // Optional: Toggle direction if clicking same cell?
                                                 }
                                             }}
                                             onKeyDown={(e) => handleKeyDown(e, rowIdx, colIdx)}
@@ -324,7 +444,7 @@ const CrosswordBoard = () => {
                                                 ${cell.isBlack
                                                     ? "invisible" // Hide empty cells completely
                                                     : selected?.row === rowIdx && selected?.col === colIdx
-                                                        ? "bg-yellow-500/40 border-2 border-yellow-500 z-10"
+                                                        ? "bg-yellow-500/50 border-4 border-yellow-400 shadow-lg shadow-yellow-500/50 z-10 scale-105"
                                                         : isHighlighted(rowIdx, colIdx)
                                                             ? "bg-blue-500/20 border border-blue-500/50"
                                                             : "bg-white/10 border border-glass-border hover:bg-white/20"
