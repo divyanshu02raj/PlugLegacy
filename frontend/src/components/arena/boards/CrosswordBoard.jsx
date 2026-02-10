@@ -27,19 +27,19 @@ const CrosswordBoard = () => {
 
     // Load Random Puzzle with Smart Rotation
     const loadRandomPuzzle = useCallback(() => {
-        // Get completed puzzle IDs from localStorage
-        const completedPuzzlesStr = localStorage.getItem('crossword_completed_puzzles');
-        let completedPuzzles = completedPuzzlesStr ? JSON.parse(completedPuzzlesStr) : [];
+        // Get visited puzzle IDs from localStorage
+        const visitedPuzzlesStr = localStorage.getItem('crossword_visited_puzzles');
+        let visitedPuzzles = visitedPuzzlesStr ? JSON.parse(visitedPuzzlesStr) : [];
 
-        // If all puzzles are completed, reset the cycle
-        if (completedPuzzles.length >= CROSSWORD_LEVELS.length) {
-            completedPuzzles = [];
-            localStorage.setItem('crossword_completed_puzzles', JSON.stringify([]));
+        // If all puzzles have been visited, reset the cycle
+        if (visitedPuzzles.length >= CROSSWORD_LEVELS.length) {
+            visitedPuzzles = [];
+            localStorage.setItem('crossword_visited_puzzles', JSON.stringify([]));
         }
 
-        // Get available (not yet completed) puzzles
+        // Get available (not yet visited) puzzles
         const availablePuzzles = CROSSWORD_LEVELS.filter(
-            level => !completedPuzzles.includes(level.id)
+            level => !visitedPuzzles.includes(level.id)
         );
 
         // Pick a random puzzle from available ones
@@ -56,6 +56,12 @@ const CrosswordBoard = () => {
         setSelected({ row: 0, col: 0 }); // Reset selection
         // Find first clue
         setCurrentClue(level.clues.across[0] || { number: 0, clue: "Start solving!" });
+
+        // Mark puzzle as visited immediately when loaded
+        if (!visitedPuzzles.includes(level.id)) {
+            visitedPuzzles.push(level.id);
+            localStorage.setItem('crossword_visited_puzzles', JSON.stringify(visitedPuzzles));
+        }
     }, []);
 
     // Load puzzle on mount
@@ -92,15 +98,6 @@ const CrosswordBoard = () => {
 
         if (allCorrect && !isSolved) {
             setIsSolved(true);
-
-            // Mark puzzle as completed in localStorage
-            const completedPuzzlesStr = localStorage.getItem('crossword_completed_puzzles');
-            let completedPuzzles = completedPuzzlesStr ? JSON.parse(completedPuzzlesStr) : [];
-
-            if (!completedPuzzles.includes(currentPuzzle.id)) {
-                completedPuzzles.push(currentPuzzle.id);
-                localStorage.setItem('crossword_completed_puzzles', JSON.stringify(completedPuzzles));
-            }
         }
     }, [board, currentPuzzle, isSolved]);
 
@@ -295,7 +292,7 @@ const CrosswordBoard = () => {
                 {/* Board - Centered and constrained to leave room for clues */}
                 <div className="flex-1 flex items-start justify-center min-h-0 pt-2">
                     <div
-                        className="relative max-h-full w-full max-w-[480px]"
+                        className="relative max-h-full w-full max-w-[700px]"
                         style={{ aspectRatio: `${board[0].length} / ${board.length}` }}
                     >
                         <div className="absolute inset-0 blur-3xl opacity-20">

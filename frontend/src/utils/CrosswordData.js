@@ -94,14 +94,18 @@ const CROSSWORD_WORDS = [
         { answer: "SUN", clue: "Star at center of solar system" },
         { answer: "PHONE", clue: "Device to call someone" },
         { answer: "OWL", clue: "Bird that hoots" },
-        { answer: "LOSE", clue: "Opposite of win" },
-        { answer: "ICECREAM", clue: "Ice + cream = ___" }
+        { answer: "LOOP", clue: "Repeating code structure" },
+        { answer: "CODE", clue: "Instructions for computer" },
+        { answer: "NODE", clue: "JavaScript runtime" },
+        { answer: "OPEN", clue: "Opposite of closed" },
+        { answer: "NOON", clue: "12 PM" },
+        { answer: "POOL", clue: "Place to swim" }
     ],
     // Crossword 4
     [
-        { answer: "DIAMOND", clue: "Hard natural substance" },
+        { answer: "GOLD", clue: "Precious yellow metal" },
         { answer: "DOWN", clue: "Opposite of up" },
-        { answer: "PACIFIC", clue: "Largest ocean" },
+        { answer: "OCEAN", clue: "Large body of salty water" },
         { answer: "FOUR", clue: "2 + 2 =" },
         { answer: "GOOGLE", clue: "Web search giant" },
         { answer: "STAR", clue: "Night sky light" }
@@ -126,12 +130,12 @@ const CROSSWORD_WORDS = [
     ],
     // Crossword 7
     [
-        { answer: "DOLLAR", clue: "Currency of USA" },
-        { answer: "LIGHT", clue: "Opposite of dark" },
-        { answer: "LPG", clue: "Gas for cooking" },
-        { answer: "DIWALI", clue: "Indian festival of lights" },
-        { answer: "SELL", clue: "Opposite of buy" },
-        { answer: "DAY", clue: "24 hours make a ___" }
+        { answer: "GARDEN", clue: "Place to grow plants" },
+        { answer: "GREEN", clue: "Color of grass" },
+        { answer: "GRAPE", clue: "Small purple fruit" },
+        { answer: "ANGER", clue: "Strong feeling of upset" },
+        { answer: "RANGE", clue: "Area or scope" },
+        { answer: "EAGER", clue: "Very excited or keen" }
     ],
     // Crossword 8
     [
@@ -153,12 +157,12 @@ const CROSSWORD_WORDS = [
     ],
     // Crossword 10
     [
-        { answer: "EMPTY", clue: "Opposite of full" },
-        { answer: "USB", clue: "Data storage device" },
-        { answer: "NILE", clue: "River in Egypt" },
-        { answer: "ASIA", clue: "Largest continent" },
-        { answer: "CAMERA", clue: "Device to take photos" },
-        { answer: "DOG", clue: "Animal that barks" }
+        { answer: "PLANET", clue: "Earth is one" },
+        { answer: "PLANT", clue: "Living green organism" },
+        { answer: "LANTERN", clue: "Portable light" },
+        { answer: "TENT", clue: "Camping shelter" },
+        { answer: "ANT", clue: "Small hardworking insect" },
+        { answer: "NEAT", clue: "Clean and organized" }
     ],
     // Crossword 11
     [
@@ -207,12 +211,12 @@ const CROSSWORD_WORDS = [
     ],
     // Crossword 16
     [
-        { answer: "HATE", clue: "Opposite of love" },
-        { answer: "HEADPHONE", clue: "Device to listen music" },
-        { answer: "FAR", clue: "Opposite of near" },
-        { answer: "TIGER", clue: "Indian national animal" },
-        { answer: "HARD", clue: "Opposite of soft" },
-        { answer: "KILOMETER", clue: "1000 meters" }
+        { answer: "MARKET", clue: "Place to buy goods" },
+        { answer: "MAKER", clue: "Someone who creates" },
+        { answer: "FRAME", clue: "Border of a picture" },
+        { answer: "TEAM", clue: "Group working together" },
+        { answer: "RATE", clue: "Speed or price" },
+        { answer: "TAKE", clue: "To grab or accept" }
     ],
     // Crossword 17
     [
@@ -234,12 +238,12 @@ const CROSSWORD_WORDS = [
     ],
     // Crossword 19
     [
-        { answer: "REJECT", clue: "Opposite of accept" },
-        { answer: "PHONE", clue: "Device to talk" },
-        { answer: "FALCON", clue: "Fast bird" },
-        { answer: "TAKE", clue: "Opposite of give" },
-        { answer: "BUG", clue: "Programming error" },
-        { answer: "LONDON", clue: "Capital of UK" }
+        { answer: "SILVER", clue: "Precious gray metal" },
+        { answer: "RIVER", clue: "Large flowing water body" },
+        { answer: "LIVER", clue: "Body organ" },
+        { answer: "SERVICE", clue: "Help or assistance" },
+        { answer: "RESCUE", clue: "Save from danger" },
+        { answer: "USER", clue: "Person using a system" }
     ],
     // Crossword 20
     [
