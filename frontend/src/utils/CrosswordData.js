@@ -51,11 +51,12 @@ function layoutToGrid(layout) {
             const row = word.orientation === 'down' ? word.starty + i : word.starty;
             const col = word.orientation === 'across' ? word.startx + i : word.startx;
 
+            const existingCell = grid[row][col];
             grid[row][col] = {
-                letter: "",
+                letter: existingCell ? existingCell.letter : "",
                 isBlack: false,
                 answer: word.answer[i],
-                number: i === 0 ? number : undefined
+                number: (i === 0 ? number : undefined) || (existingCell ? existingCell.number : undefined)
             };
         }
 
@@ -211,12 +212,16 @@ const CROSSWORD_WORDS = [
     ],
     // Crossword 16
     [
-        { answer: "MARKET", clue: "Place to buy goods" },
-        { answer: "MAKER", clue: "Someone who creates" },
-        { answer: "FRAME", clue: "Border of a picture" },
-        { answer: "TEAM", clue: "Group working together" },
-        { answer: "RATE", clue: "Speed or price" },
-        { answer: "TAKE", clue: "To grab or accept" }
+        { answer: "BAKE", clue: "Cook in an oven" },
+        { answer: "CAKE", clue: "Sweet dessert" },
+        { answer: "FAKE", clue: "Not real" },
+        { answer: "LAKE", clue: "Body of water" },
+        { answer: "MAKE", clue: "Create or build" },
+        { answer: "RAKE", clue: "Garden tool" },
+        { answer: "SAKE", clue: "For the ___ of" },
+        { answer: "TAKE", clue: "To grab" },
+        { answer: "WAKE", clue: "Stop sleeping" },
+        { answer: "SNAKE", clue: "Slithering reptile" }
     ],
     // Crossword 17
     [
