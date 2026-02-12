@@ -282,8 +282,8 @@ const Profile = () => {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-2 h-2 rounded-full ${match.result === "win" ? "bg-green-500" :
-                                                    match.result === "loss" ? "bg-red-500" :
-                                                        "bg-amber-500" // For score-based/draw
+                                                match.result === "loss" ? "bg-red-500" :
+                                                    "bg-amber-500" // For score-based/draw
                                                 }`} />
                                             <div>
                                                 <p className="font-medium">{match.game}</p>
@@ -300,7 +300,12 @@ const Profile = () => {
                                             ) : (
                                                 <p className="font-bold text-amber-400">Played</p>
                                             )}
-                                            <p className="text-xs text-muted-foreground font-mono">{match.score} pts</p>
+                                            <p className="text-xs text-muted-foreground font-mono">
+                                                {match.game === 'Crossword'
+                                                    ? `${Math.floor(match.score / 60)}:${(match.score % 60).toString().padStart(2, '0')}`
+                                                    : `${match.score} pts`
+                                                }
+                                            </p>
                                             <p className="text-[10px] text-muted-foreground/60">{match.time}</p>
                                         </div>
                                     </div>

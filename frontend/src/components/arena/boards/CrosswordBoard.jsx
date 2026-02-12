@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CROSSWORD_LEVELS } from "../../../utils/CrosswordData";
 import { Timer, Lightbulb, CheckCircle, ArrowRight, RotateCcw, ArrowLeft } from "lucide-react";
+import { userService, authService } from "../../../services/api";
 
 const CrosswordBoard = () => {
     const [currentPuzzle, setCurrentPuzzle] = useState(null);
@@ -13,6 +14,7 @@ const CrosswordBoard = () => {
     const [timer, setTimer] = useState(0);
     const [isSolved, setIsSolved] = useState(false);
     const cellRefs = useRef({});
+    const hasSavedRef = useRef(false);
 
     // Sync Focus with Selection
     useEffect(() => {
@@ -104,6 +106,7 @@ const CrosswordBoard = () => {
         setClues(level.clues);
         setTimer(0);
         setIsSolved(false);
+        hasSavedRef.current = false; // Reset save flag
         setSelected({ row: 0, col: 0 }); // Reset selection
         // Find first clue
         setCurrentClue(level.clues.across[0] || { number: 0, clue: "Start solving!" });
@@ -132,6 +135,24 @@ const CrosswordBoard = () => {
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    // Save Match when Solved
+    useEffect(() => {
+        if (isSolved && !hasSavedRef.current) {
+            hasSavedRef.current = true;
+            const user = authService.getCurrentUser();
+            if (user) {
+                userService.saveMatch({
+                    gameId: 'crossword',
+                    result: 'win',
+                    score: timer, // Time in seconds
+                    players: [{ userId: user._id, result: 'win', score: timer }]
+                }).catch(err => console.error("Failed to save match:", err));
+            }
+        }
+    }, [isSolved, timer]);
+
+
 
     const checkWin = useCallback(() => {
         if (board.length === 0 || !currentPuzzle) return;
@@ -166,8 +187,6 @@ const CrosswordBoard = () => {
         setBoard(newBoard);
         // Penalty? maybe later
     };
-
-
 
     const handleCellClick = (row, col) => {
         if (board[row][col].isBlack) return;
