@@ -168,11 +168,51 @@ const Game2048Board = () => {
     }, [move]);
 
     const resetGame = () => {
+        localStorage.removeItem('2048_state');
         setTiles([]);
         setScore(0);
         setGameOver(false);
         setTimeout(() => setTiles(addRandomTile(addRandomTile([]))), 50);
     };
+
+    // Load saved state
+    useEffect(() => {
+        const savedState = localStorage.getItem('2048_state');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (!parsed.gameOver && parsed.tiles && parsed.tiles.length > 0) {
+                    setTiles(parsed.tiles);
+                    setScore(parsed.score);
+                    setGameOver(parsed.gameOver);
+                    // Update ref to avoid ID collisions
+                    const maxId = parsed.tiles.reduce((max, t) => Math.max(max, t.id), 0);
+                    tileIdRef.current = maxId + 1;
+                } else {
+                    // Initial Load if no save
+                    if (tiles.length === 0) setTiles(addRandomTile(addRandomTile([])));
+                }
+            } catch (e) {
+                console.error("Failed to load 2048 state", e);
+                if (tiles.length === 0) setTiles(addRandomTile(addRandomTile([])));
+            }
+        } else {
+            // Initial Load if no save
+            if (tiles.length === 0) setTiles(addRandomTile(addRandomTile([])));
+        }
+    }, []);
+
+    // Save state
+    useEffect(() => {
+        if (tiles.length > 0) {
+            const state = {
+                tiles,
+                score,
+                gameOver
+            };
+            localStorage.setItem('2048_state', JSON.stringify(state));
+        }
+    }, [tiles, score, gameOver]);
 
     return (
         <motion.div

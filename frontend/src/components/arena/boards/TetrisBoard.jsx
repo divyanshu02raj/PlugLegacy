@@ -175,7 +175,46 @@ const TetrisBoard = () => {
         };
     }, [isPlaying, gameOver, dropPiece]);
 
+    // Load saved state on mount
+    useEffect(() => {
+        const savedState = localStorage.getItem('tetris_state');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (!parsed.gameOver) {
+                    setBoard(parsed.board);
+                    setScore(parsed.score);
+                    setLines(parsed.lines);
+                    setCurrentPiece(parsed.currentPiece);
+                    setNextPiece(parsed.nextPiece);
+                    setIsPlaying(false); // Start paused so they can get ready
+                    setGameOver(false);
+                }
+            } catch (e) {
+                console.error("Failed to load tetris state", e);
+            }
+        }
+    }, []);
+
+    // Save state on change
+    useEffect(() => {
+        if (isPlaying && !gameOver) {
+            const state = {
+                board,
+                score,
+                lines,
+                currentPiece,
+                nextPiece,
+                gameOver
+            };
+            localStorage.setItem('tetris_state', JSON.stringify(state));
+        } else if (gameOver) {
+            localStorage.removeItem('tetris_state');
+        }
+    }, [board, score, lines, currentPiece, nextPiece, isPlaying, gameOver]);
+
     const startGame = () => {
+        localStorage.removeItem('tetris_state');
         setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(null)));
         setScore(0);
         setLines(0);

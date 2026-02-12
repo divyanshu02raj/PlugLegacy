@@ -137,6 +137,7 @@ const SnakeBoard = () => {
     }, [isPlaying]);
 
     const startGame = () => {
+        localStorage.removeItem('snake_state');
         setSnake([{ x: 10, y: 10 }]);
         setFood(generateFood([{ x: 10, y: 10 }]));
         setDirection("RIGHT");
@@ -145,6 +146,43 @@ const SnakeBoard = () => {
         setIsPlaying(true);
         setHasStarted(true);
     };
+
+    // Load saved state
+    useEffect(() => {
+        const savedState = localStorage.getItem('snake_state');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (!parsed.gameOver && parsed.hasStarted) {
+                    setSnake(parsed.snake);
+                    setFood(parsed.food);
+                    setDirection(parsed.direction);
+                    setScore(parsed.score);
+                    setHasStarted(true);
+                    setIsPlaying(false); // Start paused
+                }
+            } catch (e) {
+                console.error("Failed to load snake state", e);
+            }
+        }
+    }, []);
+
+    // Save state
+    useEffect(() => {
+        if (hasStarted && !gameOver) {
+            const state = {
+                snake,
+                food,
+                direction,
+                score,
+                hasStarted,
+                gameOver
+            };
+            localStorage.setItem('snake_state', JSON.stringify(state));
+        } else if (gameOver) {
+            localStorage.removeItem('snake_state');
+        }
+    }, [snake, food, direction, score, hasStarted, gameOver]);
 
     const resumeGame = () => {
         setIsPlaying(true);

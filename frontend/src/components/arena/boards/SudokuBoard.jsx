@@ -178,6 +178,7 @@ const SudokuBoard = () => {
     }, [gameState, selected, board, noteMode]); // Dependencies for closure access
 
     const startGame = (diffKey) => {
+        localStorage.removeItem('sudoku_state');
         const solved = generateSolvedBoard();
         setSolution(solved.map(row => [...row])); // Deep copy solution
 
@@ -198,6 +199,44 @@ const SudokuBoard = () => {
         setTime(0);
         setSelected(null);
     };
+
+    // Load saved state
+    useEffect(() => {
+        const savedState = localStorage.getItem('sudoku_state');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (parsed.gameState === 'playing') {
+                    setBoard(parsed.board);
+                    setDifficulty(parsed.difficulty);
+                    setTime(parsed.time);
+                    setSolution(parsed.solution);
+                    setGameState('playing');
+                    setNoteMode(parsed.noteMode || false);
+                }
+            } catch (e) {
+                console.error("Failed to load sudoku state", e);
+            }
+        }
+    }, []);
+
+    // Save state
+    useEffect(() => {
+        if (gameState === 'playing') {
+            const state = {
+                board,
+                difficulty,
+                time,
+                solution,
+                noteMode,
+                gameState
+            };
+            localStorage.setItem('sudoku_state', JSON.stringify(state));
+        } else if (gameState === 'won' || gameState === 'menu') {
+            // Check if we just won, clear it
+            if (gameState === 'won') localStorage.removeItem('sudoku_state');
+        }
+    }, [board, difficulty, time, solution, noteMode, gameState]);
 
     const isInSameBlock = (r1, c1, r2, c2) => {
         return Math.floor(r1 / 3) === Math.floor(r2 / 3) && Math.floor(c1 / 3) === Math.floor(c2 / 3);

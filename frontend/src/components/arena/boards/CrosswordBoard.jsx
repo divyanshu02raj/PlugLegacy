@@ -79,7 +79,11 @@ const CrosswordBoard = () => {
     }, [selected, board, clues]);
 
     // Load Random Puzzle with Smart Rotation
+    // Load Random Puzzle with Smart Rotation
     const loadRandomPuzzle = useCallback(() => {
+        // Clear saved state
+        localStorage.removeItem('crossword_state');
+
         // Get visited puzzle IDs from localStorage
         const visitedPuzzlesStr = localStorage.getItem('crossword_visited_puzzles');
         let visitedPuzzles = visitedPuzzlesStr ? JSON.parse(visitedPuzzlesStr) : [];
@@ -98,6 +102,7 @@ const CrosswordBoard = () => {
         // Pick a random puzzle from available ones
         const randomIndex = Math.floor(Math.random() * availablePuzzles.length);
         const level = availablePuzzles[randomIndex];
+        if (!level) return; // Should not happen
 
         setCurrentPuzzle(level);
         // Deep copy grid to avoid mutation ref issues
@@ -116,12 +121,51 @@ const CrosswordBoard = () => {
             visitedPuzzles.push(level.id);
             localStorage.setItem('crossword_visited_puzzles', JSON.stringify(visitedPuzzles));
         }
-    }, []);
+    }, [CROSSWORD_LEVELS]);
 
-    // Load puzzle on mount
+    // Load saved state on mount or load random
     useEffect(() => {
+        const savedState = localStorage.getItem('crossword_state');
+        if (savedState) {
+            try {
+                const parsed = JSON.parse(savedState);
+                if (!parsed.isSolved) {
+                    setBoard(parsed.board);
+                    setTimer(parsed.timer);
+                    setIsSolved(parsed.isSolved);
+                    setClues(parsed.clues);
+                    // We might need to set currentPuzzle based on board or save it too, 
+                    // but board is the source of truth for display. 
+                    // ideally save puzzleId too.
+                    if (parsed.puzzleId) {
+                        const p = CROSSWORD_LEVELS.find(l => l.id === parsed.puzzleId);
+                        if (p) setCurrentPuzzle(p);
+                    }
+                    return;
+                }
+            } catch (e) {
+                console.error("Failed to load crossword state", e);
+            }
+        }
+        // Fallback
         loadRandomPuzzle();
     }, [loadRandomPuzzle]);
+
+    // Save state
+    useEffect(() => {
+        if (!isSolved && board.length > 0) {
+            const state = {
+                board,
+                timer,
+                isSolved,
+                clues,
+                puzzleId: currentPuzzle?.id
+            };
+            localStorage.setItem('crossword_state', JSON.stringify(state));
+        } else if (isSolved) {
+            localStorage.removeItem('crossword_state');
+        }
+    }, [board, timer, isSolved, clues, currentPuzzle]);
 
     // Timer
     useEffect(() => {
