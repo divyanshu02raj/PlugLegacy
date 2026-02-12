@@ -1,9 +1,18 @@
 const User = require('../models/User');
-const onlineUsers = new Map(); // userId -> socketId
+const redisClient = require('../config/redis');
+
+// Constants for Redis Keys
+const KEY_ONLINE_USERS = 'online_users';
+const KEY_USER_SOCKETS = 'user_sockets';
 
 module.exports = (io) => {
     io.on('connection', (socket) => {
         console.log(`Socket Connected: ${socket.id}`);
+
+        // Helper to get socket ID for a user from Redis
+        const getUserSocketId = async (userId) => {
+            return await redisClient.hget(KEY_USER_SOCKETS, userId);
+        };
 
         // Helper to send online friends
         const sendOnlineFriends = async (userId) => {
@@ -12,23 +21,17 @@ module.exports = (io) => {
             try {
                 const user = await User.findById(userId).populate('friends', '_id');
                 if (user && user.friends) {
-                    console.log(`[DEBUG] Found ${user.friends.length} friends for ${userId}`);
+                    const friendIds = user.friends.map(f => f._id.toString());
+
+                    // Check which friends are in the online_users set
                     const onlineFriendIds = [];
-                    user.friends.forEach(friend => {
-                        const friendIdStr = friend._id.toString();
-                        const friendSocketId = onlineUsers.get(friendIdStr);
-                        console.log(`[DEBUG] Friend ${friendIdStr} (Socket: ${friendSocketId})`);
-
-                        // FIX: onlineUsers keys might be string or ObjectId? 
-                        // We set it as `userId` from register_user. 
-                        // If register_user receives string, key is string.
-                        // friend._id is ObjectId. friend._id.toString() is string.
-                        // We must ensure register_user receives string or we cast it.
-
-                        if (friendSocketId) {
-                            onlineFriendIds.push(friendIdStr);
+                    for (const friendId of friendIds) {
+                        const isOnline = await redisClient.sismember(KEY_ONLINE_USERS, friendId);
+                        if (isOnline) {
+                            onlineFriendIds.push(friendId);
                         }
-                    });
+                    }
+
                     console.log(`[DEBUG] Sending list: ${JSON.stringify(onlineFriendIds)}`);
                     socket.emit('online_friends_list', onlineFriendIds);
                 }
@@ -37,26 +40,32 @@ module.exports = (io) => {
             }
         };
 
-        // Register User (Map userId to socketId)
+        // Register User
         socket.on('register_user', async (userId) => {
             if (userId) {
-                // Ensure userId is string for consistency
                 const userIdStr = userId.toString();
-                onlineUsers.set(userIdStr, socket.id);
+
+                // Store in Redis
+                await redisClient.hset(KEY_USER_SOCKETS, userIdStr, socket.id);
+                await redisClient.sadd(KEY_ONLINE_USERS, userIdStr);
+
+                // Reverse mapping for disconnect (socket -> userId)
+                // We can attach it to the socket object directly for this session
+                socket.userId = userIdStr;
+
                 console.log(`User registered: ${userIdStr} -> ${socket.id}`);
-                console.log(`[DEBUG] Online Users Map keys: ${Array.from(onlineUsers.keys())}`);
 
                 try {
                     // Notify friends that I am online
                     const user = await User.findById(userIdStr).populate('friends', '_id');
                     if (user && user.friends) {
-                        user.friends.forEach(friend => {
+                        for (const friend of user.friends) {
                             const friendIdStr = friend._id.toString();
-                            const friendSocketId = onlineUsers.get(friendIdStr);
+                            const friendSocketId = await getUserSocketId(friendIdStr);
                             if (friendSocketId) {
                                 io.to(friendSocketId).emit('friend_online', { userId: userIdStr });
                             }
-                        });
+                        }
                         // Send initial list
                         await sendOnlineFriends(userIdStr);
                     }
@@ -67,30 +76,23 @@ module.exports = (io) => {
         });
 
         // Handle manual request
-        socket.on('request_online_friends', () => {
+        socket.on('request_online_friends', async () => {
             console.log(`[DEBUG] request_online_friends from ${socket.id}`);
-            let currentUserId = null;
-            for (const [uid, sid] of onlineUsers.entries()) {
-                if (sid === socket.id) {
-                    currentUserId = uid;
-                    break;
-                }
-            }
-            if (currentUserId) {
-                sendOnlineFriends(currentUserId);
+            if (socket.userId) {
+                await sendOnlineFriends(socket.userId);
             } else {
-                console.log(`[DEBUG] No userId found for socket ${socket.id}`);
+                console.log(`[DEBUG] No userId found on socket ${socket.id}`);
             }
         });
 
         // --- INVITEM SYSTEM ---
 
         // Sender invites Recipient
-        socket.on('send_game_invite', ({ toUserId, gameType, fromUsername }) => {
-            const recipientSocketId = onlineUsers.get(toUserId);
+        socket.on('send_game_invite', async ({ toUserId, gameType, fromUsername }) => {
+            const recipientSocketId = await getUserSocketId(toUserId);
             if (recipientSocketId) {
                 io.to(recipientSocketId).emit('receive_game_invite', {
-                    fromUserId: Array.from(onlineUsers.entries()).find(([k, v]) => v === socket.id)?.[0], // find sender ID safely or pass it from client
+                    fromUserId: socket.userId,
                     fromUsername, // Pass username for display
                     gameType,
                     socketId: socket.id // Sender's socket ID for quick response
@@ -103,7 +105,6 @@ module.exports = (io) => {
         });
 
         // Recipient Responds (Accept/Decline)
-        // Recipient Responds (Accept/Decline)
         socket.on('respond_game_invite', async ({ accepted, toSocketId, toUserId, gameType }) => {
             console.log(`[DEBUG] respond_game_invite: accepted=${accepted}, toUser=${toUserId}, socket=${toSocketId}`);
             if (accepted) {
@@ -112,7 +113,7 @@ module.exports = (io) => {
                 // Resolve Sender Socket (Robust Lookup)
                 let senderSocket = io.sockets.sockets.get(toSocketId);
                 if (!senderSocket && toUserId) {
-                    const newSocketId = onlineUsers.get(toUserId);
+                    const newSocketId = await getUserSocketId(toUserId);
                     if (newSocketId) senderSocket = io.sockets.sockets.get(newSocketId);
                 }
 
@@ -134,13 +135,15 @@ module.exports = (io) => {
 
                     // Fetch User Details to send to clients
                     try {
-                        const getUserIdFromMap = (sid) => [...onlineUsers.entries()].find(([k, v]) => v === sid)?.[0];
-
-                        const senderUserIdResolved = toUserId || getUserIdFromMap(senderSocket.id);
-                        const recipientUserId = getUserIdFromMap(recipientSocket.id);
+                        const senderUserIdResolved = toUserId || senderSocket.userId;
+                        const recipientUserId = recipientSocket.userId;
 
                         const senderUser = senderUserIdResolved ? await User.findById(senderUserIdResolved).select('username avatar elo') : null;
                         const recipientUser = recipientUserId ? await User.findById(recipientUserId).select('username avatar elo') : null;
+
+
+                        // Define game key
+                        const gameKey = `game:${roomId}`;
 
                         const gameStartData = {
                             roomId,
@@ -161,8 +164,14 @@ module.exports = (io) => {
                                     avatar: recipientUser?.avatar || "bot",
                                     elo: recipientUser?.elo
                                 }
-                            }
+                            },
+                            fen: 'start', // Initial state
+                            moves: []
                         };
+
+                        // Persist Initial Game State to Redis
+                        // We store it as a JSON string for simplicity in this MVP
+                        await redisClient.setex(gameKey, 86400, JSON.stringify(gameStartData)); // Expires in 24h
 
                         console.log(`[DEBUG] Emitting game_start to room ${roomId}:`, JSON.stringify(gameStartData));
                         io.to(roomId).emit('game_start', gameStartData);
@@ -180,22 +189,49 @@ module.exports = (io) => {
         });
 
         // --- GAMEPLAY ---
-        socket.on('join_game_room', (roomId) => {
+        socket.on('join_game_room', async (roomId) => {
             socket.join(roomId);
+            console.log(`Socket ${socket.id} joined room ${roomId}`);
+
+            // Recover Game State if available
+            const gameKey = `game:${roomId}`;
+            const gameStateStr = await redisClient.get(gameKey);
+
+            if (gameStateStr) {
+                const gameState = JSON.parse(gameStateStr);
+                console.log(`[DEBUG] Recovering game state for ${roomId}`);
+
+                // Send current state to the joining user
+                socket.emit('game_state_recovery', {
+                    fen: gameState.fen,
+                    moves: gameState.moves,
+                    players: gameState.players,
+                    gameType: gameState.gameType,
+                    roomId: gameState.roomId
+                });
+            }
         });
 
-        socket.on('game_move', ({ roomId, move, fen }) => {
+        socket.on('game_move', async ({ roomId, move, fen }) => {
             // Broadcast to EVERYONE (including sender) so state stays in sync
             io.to(roomId).emit('game_move', { move, fen });
+
+            // Update Game State in Redis
+            const gameKey = `game:${roomId}`;
+            const gameStateStr = await redisClient.get(gameKey);
+
+            if (gameStateStr) {
+                const gameState = JSON.parse(gameStateStr);
+                gameState.fen = fen;
+                if (move) gameState.moves.push(move);
+                gameState.lastMoveTime = Date.now();
+
+                await redisClient.setex(gameKey, 86400, JSON.stringify(gameState)); // Refresh TTL
+            }
         });
 
         // --- GAME ACTIONS (Resign/Draw) ---
         socket.on('game_resign', ({ roomId }) => {
-            // Sender resigned. Notify everyone (opponent wins)
-            // But who is the sender? socket.id
-            // We can determine winner color or just say "Opponent Resigned"
-            // Let the clients figure out who won based on who resigned.
-            // Or we can emit "game_over" with specific details.
             socket.to(roomId).emit('opponent_resigned', { resignedSocketId: socket.id });
         });
 
@@ -225,12 +261,6 @@ module.exports = (io) => {
                 const room = io.sockets.adapter.rooms.get(roomId);
                 if (room && room.size === 2) {
                     const players = Array.from(room); // [socketId1, socketId2]
-
-                    // Assign new colors (Swap or Random) - Let's Swap for fairness
-                    // We need to know previous colors? 
-                    // Simpler: Just random again or Client sends preference?
-                    // Let's just Randomize again for simplicity, or 
-                    // Client can infer swap. Let's send explicit map.
 
                     const p1 = players[0];
                     const p2 = players[1];
@@ -282,27 +312,23 @@ module.exports = (io) => {
 
         // --- CLEANUP ---
         socket.on('disconnect', async () => {
-            // Find userId from socketId
-            let disconnectedUserId = null;
-            for (const [userId, socketId] of onlineUsers.entries()) {
-                if (socketId === socket.id) {
-                    disconnectedUserId = userId;
-                    onlineUsers.delete(userId);
-                    console.log(`User ${userId} disconnected`);
-                    break;
-                }
-            }
+            const userId = socket.userId;
+            if (userId) {
+                console.log(`User ${userId} disconnected`);
 
-            if (disconnectedUserId) {
+                // Cleanup Redis
+                await redisClient.hdel(KEY_USER_SOCKETS, userId);
+                await redisClient.srem(KEY_ONLINE_USERS, userId);
+
                 try {
-                    const user = await User.findById(disconnectedUserId).populate('friends', '_id');
+                    const user = await User.findById(userId).populate('friends', '_id');
                     if (user && user.friends) {
-                        user.friends.forEach(friend => {
-                            const friendSocketId = onlineUsers.get(friend._id.toString());
+                        for (const friend of user.friends) {
+                            const friendSocketId = await getUserSocketId(friend._id.toString());
                             if (friendSocketId) {
-                                io.to(friendSocketId).emit('friend_offline', { userId: disconnectedUserId });
+                                io.to(friendSocketId).emit('friend_offline', { userId });
                             }
-                        });
+                        }
                     }
                 } catch (error) {
                     console.error("Error notifying friends of disconnect:", error);
