@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, RotateCcw, Trophy, Timer, Award } from "lucide-react";
 import confetti from "canvas-confetti";
+import { userService } from "../../../services/api";
 
 const FALLBACK_TEXTS = [
     "The quick brown fox jumps over the lazy dog.",
@@ -69,10 +70,25 @@ const TypingRaceBoard = () => {
         setTimeout(() => inputRef.current?.focus(), 100);
     };
 
-    const finishGame = () => {
+    const finishGame = async () => {
         setFinished(true);
         setIsPlaying(false);
         const finalWpm = wpm;
+
+        // Save match history
+        try {
+            await userService.saveMatch({
+                gameId: 'typing-race',
+                result: 'completed',
+                score: finalWpm,
+                opponent: { username: 'Single Player' }, // To show nicely in history
+                playerColor: 'w',
+                duration: startTime ? Math.floor((Date.now() - startTime) / 1000) : 0
+            });
+        } catch (error) {
+            console.error("Failed to save match history:", error);
+        }
+
         if (finalWpm > bestWpm) {
             setBestWpm(finalWpm);
             localStorage.setItem("typing_race_best_wpm", finalWpm.toString());
@@ -136,8 +152,7 @@ const TypingRaceBoard = () => {
 
         // Check if finished
         if (value === text) {
-            setFinished(true);
-            setIsPlaying(false);
+            finishGame();
         }
     };
 
