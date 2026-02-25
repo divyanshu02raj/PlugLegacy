@@ -311,21 +311,38 @@ const BrickBreakerBoard = () => {
                             newY + BALL_SIZE >= b.y &&
                             newY <= b.y + b.height) {
 
-                            // Hit!
-                            // Determine side of hit for reflection (Simple approximation)
-                            // Overlap X vs Overlap Y
-                            const overlapLeft = (newX + BALL_SIZE) - b.x;
-                            const overlapRight = (b.x + b.width) - newX;
-                            const overlapTop = (newY + BALL_SIZE) - b.y;
-                            const overlapBottom = (b.y + b.height) - newY;
+                            // Hit! Determine which side was hit based on ball's previous position
+                            const ballCenterX = newX + BALL_SIZE / 2;
+                            const ballCenterY = newY + BALL_SIZE / 2;
+                            const brickCenterX = b.x + b.width / 2;
+                            const brickCenterY = b.y + b.height / 2;
 
-                            const minOverlapX = Math.min(overlapLeft, overlapRight);
-                            const minOverlapY = Math.min(overlapTop, overlapBottom);
+                            // Calculate which side the ball came from
+                            const fromLeft = x + BALL_SIZE <= b.x;
+                            const fromRight = x >= b.x + b.width;
+                            const fromTop = y + BALL_SIZE <= b.y;
+                            const fromBottom = y >= b.y + b.height;
 
-                            if (minOverlapX < minOverlapY) {
-                                newDx = -newDx; // Side hit
+                            // Determine bounce direction based on entry side
+                            if (fromLeft || fromRight) {
+                                newDx = -newDx; // Hit from side
+                                // Push ball out of brick
+                                if (fromLeft) newX = b.x - BALL_SIZE;
+                                else newX = b.x + b.width;
+                            } else if (fromTop || fromBottom) {
+                                newDy = -newDy; // Hit from top/bottom
+                                // Push ball out of brick
+                                if (fromTop) newY = b.y - BALL_SIZE;
+                                else newY = b.y + b.height;
                             } else {
-                                newDy = -newDy; // Top/Bottom hit
+                                // Corner hit - use angle to determine
+                                const dx_diff = ballCenterX - brickCenterX;
+                                const dy_diff = ballCenterY - brickCenterY;
+                                if (Math.abs(dx_diff) > Math.abs(dy_diff)) {
+                                    newDx = -newDx;
+                                } else {
+                                    newDy = -newDy;
+                                }
                             }
 
                             // Update Brick Health
@@ -672,7 +689,7 @@ const BrickBreakerBoard = () => {
             </div>
 
             <p className="mt-4 text-center text-xs text-muted-foreground/50">
-                Use <kbd className="bg-white/10 px-1 rounded">←</kbd> <kbd className="bg-white/10 px-1 rounded">→</kbd> or Mouse to move
+                Use <kbd className="bg-white/10 px-1 rounded">←</kbd> <kbd className="bg-white/10 px-1 rounded">→</kbd> to move
             </p>
         </motion.div>
     );
